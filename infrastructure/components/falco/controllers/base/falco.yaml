@@ -18,6 +18,7 @@ spec:
   chart:
     spec:
       chart: falco
+      version: "9.2.0"
       sourceRef:
         kind: HelmRepository
         name: falco

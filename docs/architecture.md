@@ -38,11 +38,12 @@ Tenant resources are generated from a matrix of inputs + templated resources:
 - `fleet/tenants/apps.yaml` — one namespace + source + `Kustomization` per app
   (frontend, backend).
 
-Each input carries a `tag` field (`latest` by default) rendered into the generated
-`OCIRepository.spec.ref.tag`, so every component can pin its own artifact version
-(e.g. `tag: "1.2.3"`). Versioned tags are produced by `release-artifact.yaml` (git
-tags `v*`), `push-artifact.yaml` (git SHA + `latest`), and locally by
-`scripts/devbox.sh build` (`VERSION`, plus `latest`).
+The generated `OCIRepository.spec.ref.tag` is a single monorepo-wide **OCI artifact
+version** (`${OCI_VERSION}`, e.g. `1.0.0`), decoupled from the component (Helm
+chart) versions. The version is defined once in [`versions.yaml`](../versions.yaml),
+which also records the correspondence table (OCI version -> component chart
+version). The build tags every artifact `:<oci>` plus `latest`. Component chart
+versions stay pinned in each `controllers/base/*.yaml` HelmRelease.
 
 The `infra-configs` `Kustomization` is generated only for components that declare
 `configs: "true"` (currently cert-manager and openbao), using the conditional
@@ -51,11 +52,12 @@ The `infra-configs` `Kustomization` is generated only for components that declar
 ### Two-stage templating
 
 1. **Build time** (`envsubst`): `${REGISTRY_HOST}`, `${REGISTRY_INSECURE}`,
-   `${REPOSITORY}`, `${FLEET_VERSION}` are rendered into concrete values before the
-   OCI artifacts are pushed. This is what lets the same repo target `ghcr.io` (prod)
-   or a local zot (devbox), and lets boolean fields (e.g. `insecure`) render
-   correctly. `${FLEET_VERSION}` bakes the fleet artifact `ref` into each
-   `FluxInstance`.
+   `${REPOSITORY}`, `${OCI_VERSION}`, `${FLEET_VERSION}` are rendered into concrete
+   values before the OCI artifacts are pushed. This is what lets the same repo
+   target `ghcr.io` (prod) or a local zot (devbox), and lets boolean fields (e.g.
+   `insecure`) render correctly. `${OCI_VERSION}` is the shared artifact tag
+   referenced by every `OCIRepository`; `${FLEET_VERSION}` bakes the fleet artifact
+   `ref` into each `FluxInstance`.
 2. **Reconcile time** (Flux `postBuild.substituteFrom`): `${ENVIRONMENT}`,
    `${CLUSTER_NAME}`, `${CLUSTER_DOMAIN}` are substituted per cluster from the
    `flux-runtime-info` ConfigMap.

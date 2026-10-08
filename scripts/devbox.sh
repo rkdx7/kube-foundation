@@ -51,9 +51,10 @@ ZOT_IMAGE="${ZOT_IMAGE:-ghcr.io/project-zot/zot-linux-amd64:v2.1.4}"
 # Environment to render/bootstrap (staging or prod).
 ENVIRONMENT="${ENVIRONMENT:-staging}"
 
-# OCI artifact version tag. Pushed in addition to `latest` so the tenant
-# ResourceSets can pin a specific version via `inputs.tag`.
-VERSION="${VERSION:-latest}"
+# OCI artifact version (monorepo-wide, decoupled from component chart versions).
+# Sourced from versions.yaml, overridable via env. Pushed in addition to `latest`.
+OCI_VERSION="${OCI_VERSION:-$(grep -E '^oci:' "${ROOT_DIR}/versions.yaml" 2>/dev/null | head -1 | sed -E 's/^oci:[[:space:]]*"?([^"]*)"?.*$/\1/')}"
+OCI_VERSION="${OCI_VERSION:-latest}"
 
 # Fleet artifact version baked into the FluxInstance `sync.ref`. Defaults to
 # `latest`; set it per environment to pin the fleet release a cluster consumes.
@@ -118,13 +119,14 @@ render_tree() {
   export REGISTRY_INSECURE="${insecure}"
   export REPOSITORY="${repo}"
   export FLEET_VERSION
+  export OCI_VERSION
 
   while IFS= read -r -d '' f; do
     # Only process textual files (skip binaries/images).
     if file -b --mime-encoding "$f" | grep -qE 'binary'; then
       continue
     fi
-    envsubst '${REGISTRY_HOST} ${REGISTRY_INSECURE} ${REPOSITORY} ${FLEET_VERSION}' < "$f" > "$f.tmp"
+    envsubst '${REGISTRY_HOST} ${REGISTRY_INSECURE} ${REPOSITORY} ${FLEET_VERSION} ${OCI_VERSION}' < "$f" > "$f.tmp"
     mv "$f.tmp" "$f"
   done < <(find "${dst}" -type f -print0)
 }
@@ -209,13 +211,13 @@ cmd_build() {
   rev="$(git -C "${ROOT_DIR}" rev-parse --short HEAD 2>/dev/null || echo "latest")"
 
   push_artifact() {
-    local artifact="$1" path="$2"
-    log "pushing artifact ${artifact}:${VERSION}"
-    flux push artifact "${artifact}:${VERSION}" \
+    local artifact="$1" path="$2" tag="$3"
+    log "pushing artifact ${artifact}:${tag}"
+    flux push artifact "${artifact}:${tag}" \
       --path="${path}" \
       --source="${src}" \
       --revision="${rev}" >/dev/null
-    if [ "${VERSION}" != "latest" ]; then
+    if [ "${tag}" != "latest" ]; then
       flux push artifact "${artifact}:latest" \
         --path="${path}" \
         --source="${src}" \
@@ -223,19 +225,19 @@ cmd_build() {
     fi
   }
 
-  log "packaging OCI artifacts..."
+  log "packaging OCI artifacts (OCI_VERSION=${OCI_VERSION})..."
 
   # fleet (per cluster/environment)
-  push_artifact "oci://${REGISTRY_PUSH}/${REPOSITORY}/fleet" "${RENDER_DIR}/fleet"
+  push_artifact "oci://${REGISTRY_PUSH}/${REPOSITORY}/fleet" "${RENDER_DIR}/fleet" "${OCI_VERSION}"
 
-  # infrastructure components (one artifact per component, D2 style)
+  # infrastructure components (one artifact per component, same OCI version)
   local comp
   for comp in "${ROOT_DIR}"/infrastructure/components/*/; do
     [ -d "$comp" ] || continue
     local name
     name="$(basename "$comp")"
     render_tree "${comp}" "${RENDER_DIR}/infrastructure/${name}" "${host}" "${insecure}" "${REPOSITORY}"
-    push_artifact "oci://${REGISTRY_PUSH}/${REPOSITORY}/infrastructure/${name}" "${RENDER_DIR}/infrastructure/${name}"
+    push_artifact "oci://${REGISTRY_PUSH}/${REPOSITORY}/infrastructure/${name}" "${RENDER_DIR}/infrastructure/${name}" "${OCI_VERSION}"
   done
 
   # app components
@@ -244,7 +246,7 @@ cmd_build() {
     local name
     name="$(basename "$comp")"
     render_tree "${comp}" "${RENDER_DIR}/apps/${name}" "${host}" "${insecure}" "${REPOSITORY}"
-    push_artifact "oci://${REGISTRY_PUSH}/${REPOSITORY}/apps/${name}" "${RENDER_DIR}/apps/${name}"
+    push_artifact "oci://${REGISTRY_PUSH}/${REPOSITORY}/apps/${name}" "${RENDER_DIR}/apps/${name}" "${OCI_VERSION}"
   done
 
   ok "build complete (artifacts pushed to ${REGISTRY_PUSH}/${REPOSITORY})"

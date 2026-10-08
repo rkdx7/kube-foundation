@@ -18,6 +18,7 @@ spec:
   chart:
     spec:
       chart: tempo
+      version: "1.24.4"
       sourceRef:
         kind: HelmRepository
         name: tempo

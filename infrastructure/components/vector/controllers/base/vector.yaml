@@ -18,6 +18,7 @@ spec:
   chart:
     spec:
       chart: vector
+      version: "0.59.0"
       sourceRef:
         kind: HelmRepository
         name: vector

@@ -25,7 +25,7 @@ Environment variables (optional):
 | Variable | Default | Description |
 |---|---|---|
 | `ENVIRONMENT` | `staging` | `staging` or `prod` (which fleet path to bootstrap) |
-| `VERSION` | `latest` | OCI artifact version tag (pushed alongside `latest`) |
+| `OCI_VERSION` | from `versions.yaml` | monorepo OCI artifact version (pushed alongside `latest`) |
 | `FLEET_VERSION` | `latest` | fleet artifact `ref` baked into the `FluxInstance` |
 | `REGISTRY_PORT` | `5000` | local registry port |
 | `CLUSTER_NAME` | `kube-foundation` | kind cluster name |

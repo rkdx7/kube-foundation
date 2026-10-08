@@ -27,6 +27,7 @@ spec:
   chart:
     spec:
       chart: kube-prometheus-stack
+      version: "92.2.0"
       sourceRef:
         kind: HelmRepository
         name: monitoring
@@ -53,6 +54,7 @@ spec:
   chart:
     spec:
       chart: metrics-server
+      version: "3.14.0"
       sourceRef:
         kind: HelmRepository
         name: metrics-server
