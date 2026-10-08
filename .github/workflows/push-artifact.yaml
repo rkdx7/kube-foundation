@@ -8,6 +8,7 @@ on:
 env:
   REGISTRY_HOST: ghcr.io
   REGISTRY_INSECURE: "false"
+  FLEET_VERSION: latest
 
 permissions:
   contents: read
@@ -50,8 +51,10 @@ jobs:
           export REGISTRY_HOST="${REGISTRY_HOST}"
           export REGISTRY_INSECURE="${REGISTRY_INSECURE}"
           export REPOSITORY="${{ github.repository }}"
+          export FLEET_VERSION="${FLEET_VERSION}"
           src="${{ github.server_url }}/${{ github.repository }}"
           rev="${{ github.sha }}"
+          version="${GITHUB_SHA::8}"
 
           render() {
             local dir="$1" out="$2"
@@ -59,38 +62,48 @@ jobs:
             cp -R "$dir/." "$out/"
             while IFS= read -r -d '' f; do
               if file -b --mime-encoding "$f" | grep -qE 'binary'; then continue; fi
-              envsubst '${REGISTRY_HOST} ${REGISTRY_INSECURE} ${REPOSITORY}' < "$f" > "$f.tmp"
+              envsubst '${REGISTRY_HOST} ${REGISTRY_INSECURE} ${REPOSITORY} ${FLEET_VERSION}' < "$f" > "$f.tmp"
               mv "$f.tmp" "$f"
             done < <(find "$out" -type f -print0)
           }
 
+          push() {
+            local url="$1" path="$2"
+            flux push artifact "${url}:${version}" --path="$path" --source="$src" --revision="$rev"
+            flux push artifact "${url}:latest"    --path="$path" --source="$src" --revision="$rev"
+          }
+
           render fleet .rendered/fleet
-          flux push artifact "oci://ghcr.io/${{ github.repository }}/fleet:latest" \
-            --path=.rendered/fleet --source="$src" --revision="$rev"
+          push "oci://ghcr.io/${{ github.repository }}/fleet" .rendered/fleet
 
           for c in infrastructure/components/*/; do
             n="$(basename "$c")"
             render "$c" ".rendered/$n"
-            flux push artifact "oci://ghcr.io/${{ github.repository }}/infrastructure/$n:latest" \
-              --path=".rendered/$n" --source="$src" --revision="$rev"
+            push "oci://ghcr.io/${{ github.repository }}/infrastructure/$n" ".rendered/$n"
           done
 
           for c in apps/components/*/; do
             n="$(basename "$c")"
             render "$c" ".rendered/$n"
-            flux push artifact "oci://ghcr.io/${{ github.repository }}/apps/$n:latest" \
-              --path=".rendered/$n" --source="$src" --revision="$rev"
+            push "oci://ghcr.io/${{ github.repository }}/apps/$n" ".rendered/$n"
           done
 
       - name: Sign artifacts with cosign
         run: |
           set -euo pipefail
-          cosign sign --yes "ghcr.io/${{ github.repository }}/fleet:latest"
+          version="${GITHUB_SHA::8}"
+          for tag in "${version}" latest; do
+            cosign sign --yes "ghcr.io/${{ github.repository }}/fleet:${tag}"
+          done
           for c in infrastructure/components/*/; do
             n="$(basename "$c")"
-            cosign sign --yes "ghcr.io/${{ github.repository }}/infrastructure/$n:latest"
+            for tag in "${version}" latest; do
+              cosign sign --yes "ghcr.io/${{ github.repository }}/infrastructure/$n:${tag}"
+            done
           done
           for c in apps/components/*/; do
             n="$(basename "$c")"
-            cosign sign --yes "ghcr.io/${{ github.repository }}/apps/$n:latest"
+            for tag in "${version}" latest; do
+              cosign sign --yes "ghcr.io/${{ github.repository }}/apps/$n:${tag}"
+            done
           done

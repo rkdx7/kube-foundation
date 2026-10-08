@@ -30,6 +30,7 @@ REGISTRY_NAME="${REGISTRY_NAME:-kind-registry}"
 REGISTRY_PORT="${REGISTRY_PORT:-5000}"
 KIND_NETWORK="${KIND_NETWORK:-kind}"
 CLUSTER_NAME="${CLUSTER_NAME:-kube-foundation}"
+WORKERS="${WORKERS:-2}"
 
 # OCI repository prefix used inside artifact URLs (no leading/trailing slash).
 REPOSITORY="${REPOSITORY:-kube-foundation}"
@@ -49,6 +50,14 @@ ZOT_IMAGE="${ZOT_IMAGE:-ghcr.io/project-zot/zot-linux-amd64:v2.1.4}"
 
 # Environment to render/bootstrap (staging or prod).
 ENVIRONMENT="${ENVIRONMENT:-staging}"
+
+# OCI artifact version tag. Pushed in addition to `latest` so the tenant
+# ResourceSets can pin a specific version via `inputs.tag`.
+VERSION="${VERSION:-latest}"
+
+# Fleet artifact version baked into the FluxInstance `sync.ref`. Defaults to
+# `latest`; set it per environment to pin the fleet release a cluster consumes.
+FLEET_VERSION="${FLEET_VERSION:-latest}"
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -108,13 +117,14 @@ render_tree() {
   export REGISTRY_HOST="${host}"
   export REGISTRY_INSECURE="${insecure}"
   export REPOSITORY="${repo}"
+  export FLEET_VERSION
 
   while IFS= read -r -d '' f; do
     # Only process textual files (skip binaries/images).
     if file -b --mime-encoding "$f" | grep -qE 'binary'; then
       continue
     fi
-    envsubst '${REGISTRY_HOST} ${REGISTRY_INSECURE} ${REPOSITORY}' < "$f" > "$f.tmp"
+    envsubst '${REGISTRY_HOST} ${REGISTRY_INSECURE} ${REPOSITORY} ${FLEET_VERSION}' < "$f" > "$f.tmp"
     mv "$f.tmp" "$f"
   done < <(find "${dst}" -type f -print0)
 }
@@ -200,11 +210,17 @@ cmd_build() {
 
   push_artifact() {
     local artifact="$1" path="$2"
-    log "pushing artifact ${artifact}"
-    flux push artifact "${artifact}:latest" \
+    log "pushing artifact ${artifact}:${VERSION}"
+    flux push artifact "${artifact}:${VERSION}" \
       --path="${path}" \
       --source="${src}" \
       --revision="${rev}" >/dev/null
+    if [ "${VERSION}" != "latest" ]; then
+      flux push artifact "${artifact}:latest" \
+        --path="${path}" \
+        --source="${src}" \
+        --revision="${rev}" >/dev/null
+    fi
   }
 
   log "packaging OCI artifacts..."
@@ -247,10 +263,18 @@ cmd_cluster() {
       local host_ip="${REGISTRY_PULL%:*}"
 
       mkdir -p "${DEBOX_DIR}"
-      cat > "${DEBOX_DIR}/kind-config.yaml" <<EOF
+      {
+        cat <<EOF
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: ${CLUSTER_NAME}
+nodes:
+  - role: control-plane
+EOF
+        for _ in $(seq 1 "${WORKERS}"); do
+          echo "  - role: worker"
+        done
+        cat <<EOF
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."${host_ip}:${REGISTRY_PORT}"]
@@ -258,6 +282,7 @@ containerdConfigPatches:
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:${REGISTRY_PORT}"]
     endpoint = ["http://${host_ip}:${REGISTRY_PORT}"]
 EOF
+      } > "${DEBOX_DIR}/kind-config.yaml"
 
       if kind get clusters 2>/dev/null | grep -qx "${CLUSTER_NAME}"; then
         log "kind cluster ${CLUSTER_NAME} already exists"
@@ -271,10 +296,14 @@ EOF
 
       # Workaround for hosts where net.ipv4.conf.all.arp_ignore=2 (e.g. Fedora):
       # it breaks kindnet's point-to-point pod ARP, so pods cannot reach their
-      # gateway. Reset it on every interface (all/default/veth/...).
-      log "applying arp_ignore workaround..."
-      docker exec "${CLUSTER_NAME}-control-plane" sh -c \
-        'for f in /proc/sys/net/ipv4/conf/*/arp_ignore; do echo 0 > "$f" 2>/dev/null || true; done'
+      # gateway. Reset it on every interface of every node (all/default/veth/...).
+      log "applying arp_ignore + inotify workarounds..."
+      for node in $(docker ps --format '{{.Names}}' | grep "^${CLUSTER_NAME}-"); do
+        docker exec "$node" sh -c \
+          'for f in /proc/sys/net/ipv4/conf/*/arp_ignore; do echo 0 > "$f" 2>/dev/null || true; done'
+        # Falco's engine needs more inotify instances than the default (128).
+        docker exec "$node" sysctl -w fs.inotify.max_user_instances=1024 >/dev/null 2>&1 || true
+      done
 
       ok "kind cluster ready (in-cluster registry: ${REGISTRY_PULL})"
       ;;

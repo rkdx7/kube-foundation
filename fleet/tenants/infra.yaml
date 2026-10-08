@@ -9,40 +9,58 @@ spec:
   inputs:
     - component: "cilium"
       configs: "false"
+      tag: "latest"
     - component: "ingress-nginx"
       configs: "false"
+      tag: "latest"
     - component: "cert-manager"
       configs: "true"
+      tag: "latest"
     - component: "external-dns"
       configs: "false"
+      tag: "latest"
     - component: "external-secrets"
       configs: "true"
+      tag: "latest"
     - component: "openbao"
       configs: "true"
+      tag: "latest"
     - component: "kyverno"
       configs: "false"
+      tag: "latest"
     - component: "falco"
       configs: "false"
+      tag: "latest"
     - component: "trivy"
       configs: "false"
+      tag: "latest"
     - component: "istio"
       configs: "false"
+      tag: "latest"
     - component: "keda"
       configs: "false"
+      tag: "latest"
     - component: "velero"
       configs: "false"
+      tag: "latest"
     - component: "longhorn"
       configs: "false"
+      tag: "latest"
     - component: "monitoring"
       configs: "false"
+      tag: "latest"
     - component: "loki"
       configs: "false"
+      tag: "latest"
     - component: "tempo"
       configs: "false"
+      tag: "latest"
     - component: "opentelemetry"
       configs: "false"
+      tag: "latest"
     - component: "vector"
       configs: "false"
+      tag: "latest"
   resources:
     - apiVersion: v1
       kind: Namespace
@@ -77,7 +95,7 @@ spec:
         serviceAccountName: flux
         url: "oci://${REGISTRY_HOST}/${REPOSITORY}/infrastructure/<< inputs.component >>"
         ref:
-          tag: latest
+          tag: << inputs.tag >>
         insecure: ${REGISTRY_INSECURE}
     - apiVersion: kustomize.toolkit.fluxcd.io/v1
       kind: Kustomization

@@ -25,6 +25,8 @@ Environment variables (optional):
 | Variable | Default | Description |
 |---|---|---|
 | `ENVIRONMENT` | `staging` | `staging` or `prod` (which fleet path to bootstrap) |
+| `VERSION` | `latest` | OCI artifact version tag (pushed alongside `latest`) |
+| `FLEET_VERSION` | `latest` | fleet artifact `ref` baked into the `FluxInstance` |
 | `REGISTRY_PORT` | `5000` | local registry port |
 | `CLUSTER_NAME` | `kube-foundation` | kind cluster name |
 | `REPOSITORY` | `kube-foundation` | OCI repository prefix |
@@ -58,10 +60,10 @@ helm upgrade --install flux-operator \
 Render `fleet/clusters/<env>/` with your registry values and apply the FluxInstance:
 
 ```bash
-export REGISTRY_HOST=ghcr.io REGISTRY_INSECURE=false REPOSITORY=<org>/kube-foundation
+export REGISTRY_HOST=ghcr.io REGISTRY_INSECURE=false REPOSITORY=<org>/kube-foundation FLEET_VERSION=latest
 
 # render the FluxInstance (same substitution CI does)
-envsubst '${REGISTRY_HOST} ${REGISTRY_INSECURE} ${REPOSITORY}' \
+envsubst '${REGISTRY_HOST} ${REGISTRY_INSECURE} ${REPOSITORY} ${FLEET_VERSION}' \
   < fleet/clusters/prod/flux-system/flux-instance.yaml \
   | kubectl apply -f -
 ```

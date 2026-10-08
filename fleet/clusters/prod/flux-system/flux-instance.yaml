@@ -27,7 +27,7 @@ spec:
   sync:
     kind: OCIRepository
     url: "oci://${REGISTRY_HOST}/${REPOSITORY}/fleet"
-    ref: "latest"
+    ref: "${FLEET_VERSION}"
     path: "clusters/prod"
   kustomize:
     patches:

@@ -42,6 +42,7 @@ jobs:
           src="${{ github.server_url }}/${{ github.repository }}"
           rev="${{ github.sha }}"
           tag="${GITHUB_REF_NAME#v}"
+          export FLEET_VERSION="${tag}"
 
           render() {
             local dir="$1" out="$2"
@@ -49,7 +50,7 @@ jobs:
             cp -R "$dir/." "$out/"
             while IFS= read -r -d '' f; do
               if file -b --mime-encoding "$f" | grep -qE 'binary'; then continue; fi
-              envsubst '${REGISTRY_HOST} ${REGISTRY_INSECURE} ${REPOSITORY}' < "$f" > "$f.tmp"
+              envsubst '${REGISTRY_HOST} ${REGISTRY_INSECURE} ${REPOSITORY} ${FLEET_VERSION}' < "$f" > "$f.tmp"
               mv "$f.tmp" "$f"
             done < <(find "$out" -type f -print0)
           }
