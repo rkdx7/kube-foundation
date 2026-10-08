@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/kgateway-dev/kgateway/main/website/public/img/logo-kgateway-envoy.svg" alt="kgateway logo" width="160" />
+  <img src="https://raw.githubusercontent.com/cncf/artwork/main/projects/kgateway/icon/color/kgateway-icon-color.svg" alt="kgateway logo" width="160" />
 </p>
 
 # kgateway
