@@ -1,0 +1,87 @@
+name: release-artifact
+
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  REGISTRY_HOST: ghcr.io
+  REGISTRY_INSECURE: "false"
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Flux
+        uses: controlplaneio-fluxcd/distribution/actions/setup@main
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.1.1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push versioned artifacts
+        run: |
+          set -euo pipefail
+          export REGISTRY_HOST="${REGISTRY_HOST}"
+          export REGISTRY_INSECURE="${REGISTRY_INSECURE}"
+          export REPOSITORY="${{ github.repository }}"
+          src="${{ github.server_url }}/${{ github.repository }}"
+          rev="${{ github.sha }}"
+          tag="${GITHUB_REF_NAME#v}"
+
+          render() {
+            local dir="$1" out="$2"
+            rm -rf "$out"; mkdir -p "$out"
+            cp -R "$dir/." "$out/"
+            while IFS= read -r -d '' f; do
+              if file -b --mime-encoding "$f" | grep -qE 'binary'; then continue; fi
+              envsubst '${REGISTRY_HOST} ${REGISTRY_INSECURE} ${REPOSITORY}' < "$f" > "$f.tmp"
+              mv "$f.tmp" "$f"
+            done < <(find "$out" -type f -print0)
+          }
+
+          render fleet .rendered/fleet
+          flux push artifact "oci://ghcr.io/${{ github.repository }}/fleet:${tag}" \
+            --path=.rendered/fleet --source="$src" --revision="$rev"
+
+          for c in infrastructure/components/*/; do
+            n="$(basename "$c")"
+            render "$c" ".rendered/$n"
+            flux push artifact "oci://ghcr.io/${{ github.repository }}/infrastructure/$n:${tag}" \
+              --path=".rendered/$n" --source="$src" --revision="$rev"
+          done
+
+          for c in apps/components/*/; do
+            n="$(basename "$c")"
+            render "$c" ".rendered/$n"
+            flux push artifact "oci://ghcr.io/${{ github.repository }}/apps/$n:${tag}" \
+              --path=".rendered/$n" --source="$src" --revision="$rev"
+          done
+
+      - name: Sign versioned artifacts
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          cosign sign --yes "ghcr.io/${{ github.repository }}/fleet:${tag}"
+          for c in infrastructure/components/*/; do
+            n="$(basename "$c")"
+            cosign sign --yes "ghcr.io/${{ github.repository }}/infrastructure/$n:${tag}"
+          done
+          for c in apps/components/*/; do
+            n="$(basename "$c")"
+            cosign sign --yes "ghcr.io/${{ github.repository }}/apps/$n:${tag}"
+          done

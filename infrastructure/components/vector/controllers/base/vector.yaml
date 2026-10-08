@@ -1,0 +1,43 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: vector
+  namespace: vector
+spec:
+  interval: 24h
+  url: https://helm.vector.dev
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: vector
+  namespace: vector
+spec:
+  interval: 30m
+  releaseName: vector
+  chart:
+    spec:
+      chart: vector
+      sourceRef:
+        kind: HelmRepository
+        name: vector
+  values:
+    role: Agent
+    service:
+      enabled: false
+    customConfig:
+      data_dir: /vector-data-dir
+      sources:
+        kubernetes_logs:
+          type: kubernetes_logs
+      sinks:
+        loki:
+          type: loki
+          inputs:
+            - kubernetes_logs
+          endpoint: http://loki.loki.svc.cluster.local:3100
+          tenant_id: fake
+          encoding:
+            codec: json
+          labels:
+            source: vector

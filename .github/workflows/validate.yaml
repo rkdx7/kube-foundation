@@ -1,0 +1,25 @@
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Flux
+        uses: controlplaneio-fluxcd/distribution/actions/setup@main
+      - name: Validate kustomizations
+        run: |
+          set -euo pipefail
+          while IFS= read -r k; do
+            dir="$(dirname "$k")"
+            echo "==> validating ${dir}"
+            kubectl kustomize "${dir}" >/dev/null
+          done < <(find . -name kustomization.yaml -not -path './.git/*' | sort)
+      - name: Validate shell script
+        run: bash -n scripts/devbox.sh

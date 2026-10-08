@@ -1,0 +1,9 @@
+# age public keys trusted for SOPS encryption.
+#
+# The private key MUST NOT be committed. Generate one with:
+#   age-keygen -o ~/.config/sops/age/keys.txt
+#   age-keygen -y ~/.config/sops/age/keys.txt   # prints the public key
+#
+# Paste the public key below and reference it in ../../.sops.yaml
+#
+age1CHANGE_ME_PUT_YOUR_AGE_PUBLIC_KEY_HERE

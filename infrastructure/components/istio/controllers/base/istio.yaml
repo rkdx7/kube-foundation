@@ -1,0 +1,72 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: istio
+  namespace: istio
+spec:
+  interval: 24h
+  url: https://istio-release.storage.googleapis.com/charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: istio-base
+  namespace: istio
+spec:
+  interval: 30m
+  releaseName: istio-base
+  targetNamespace: istio-system
+  install:
+    createNamespace: true
+  chart:
+    spec:
+      chart: base
+      sourceRef:
+        kind: HelmRepository
+        name: istio
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: istiod
+  namespace: istio
+spec:
+  interval: 30m
+  releaseName: istiod
+  targetNamespace: istio-system
+  dependsOn:
+    - name: istio-base
+  install:
+    createNamespace: true
+  chart:
+    spec:
+      chart: istiod
+      sourceRef:
+        kind: HelmRepository
+        name: istio
+  values:
+    meshConfig:
+      accessLogFile: /dev/stdout
+    pilot:
+      autoscaleEnabled: false
+      replicas: 1
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: istio-ingress
+  namespace: istio
+spec:
+  interval: 30m
+  releaseName: istio-ingress
+  targetNamespace: istio-system
+  dependsOn:
+    - name: istiod
+  install:
+    createNamespace: true
+  chart:
+    spec:
+      chart: gateway
+      sourceRef:
+        kind: HelmRepository
+        name: istio

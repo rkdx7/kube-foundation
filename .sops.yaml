@@ -1,0 +1,17 @@
+# SOPS configuration for kube-foundation.
+#
+# Secrets are encrypted with `age` (https://age-encryption.org) and committed
+# to Git. The corresponding private key lives OUTSIDE the repository.
+#
+#  1. Generate a key pair:
+#       age-keygen -o key.txt
+#  2. Copy the public key (age1...) below, replacing the placeholder.
+#  3. Encrypt a file:
+#       sops --encrypt --in-place secrets.example.yaml
+#  4. Flux decrypts at reconcile time using the age private key stored in the
+#     cluster secret `sops-age` (see docs/secrets.md).
+#
+creation_rules:
+  - path_regex: \.sops\.ya?ml$
+    age: >-
+      age1CHANGE_ME_PUT_YOUR_AGE_PUBLIC_KEY_HERE

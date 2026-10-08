@@ -1,0 +1,40 @@
+apiVersion: fluxcd.controlplane.io/v1
+kind: FluxInstance
+metadata:
+  name: flux
+  namespace: flux-system
+  annotations:
+    fluxcd.controlplane.io/reconcile: "enabled"
+    fluxcd.controlplane.io/reconcileEvery: "1h"
+spec:
+  distribution:
+    version: "2.x"
+    registry: "ghcr.io/fluxcd"
+  components:
+    - source-controller
+    - kustomize-controller
+    - helm-controller
+    - notification-controller
+    - image-reflector-controller
+    - image-automation-controller
+  cluster:
+    type: kubernetes
+    size: medium
+    multitenant: true
+    tenantDefaultServiceAccount: flux
+    networkPolicy: true
+    domain: "cluster.local"
+  sync:
+    kind: OCIRepository
+    url: "oci://${REGISTRY_HOST}/${REPOSITORY}/fleet"
+    ref: "latest"
+    path: "clusters/staging"
+  kustomize:
+    patches:
+      - target:
+          kind: OCIRepository
+          name: flux-system
+        patch: |
+          - op: add
+            path: /spec/insecure
+            value: ${REGISTRY_INSECURE}

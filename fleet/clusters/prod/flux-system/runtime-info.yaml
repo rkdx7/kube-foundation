@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flux-runtime-info
+  namespace: flux-system
+  labels:
+    toolkit.fluxcd.io/runtime: "true"
+    reconcile.fluxcd.io/watch: Enabled
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: "Merge"
+data:
+  ENVIRONMENT: prod
+  CLUSTER_NAME: prod
+  CLUSTER_DOMAIN: prod.example.com
+  PROVIDER: aws
+  REGISTRY_HOST: "${REGISTRY_HOST}"
+  REGISTRY_INSECURE: "${REGISTRY_INSECURE}"
+  REPOSITORY: "${REPOSITORY}"

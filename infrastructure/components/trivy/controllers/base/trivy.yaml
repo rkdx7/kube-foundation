@@ -1,0 +1,27 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: trivy
+  namespace: trivy
+spec:
+  interval: 24h
+  url: https://aquasecurity.github.io/helm-charts/
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: trivy-operator
+  namespace: trivy
+spec:
+  interval: 30m
+  releaseName: trivy-operator
+  chart:
+    spec:
+      chart: trivy-operator
+      sourceRef:
+        kind: HelmRepository
+        name: trivy
+  values:
+    installCRDs: true
+    trivy:
+      ignoreUnfixed: true

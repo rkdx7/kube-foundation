@@ -1,0 +1,119 @@
+apiVersion: fluxcd.controlplane.io/v1
+kind: ResourceSet
+metadata:
+  name: infra
+  namespace: flux-system
+  annotations:
+    fluxcd.controlplane.io/reconcileEvery: "5m"
+spec:
+  inputs:
+    - component: "cilium"
+      configs: "false"
+    - component: "ingress-nginx"
+      configs: "false"
+    - component: "cert-manager"
+      configs: "true"
+    - component: "external-dns"
+      configs: "false"
+    - component: "external-secrets"
+      configs: "true"
+    - component: "openbao"
+      configs: "true"
+    - component: "kyverno"
+      configs: "false"
+    - component: "falco"
+      configs: "false"
+    - component: "trivy"
+      configs: "false"
+    - component: "istio"
+      configs: "false"
+    - component: "keda"
+      configs: "false"
+    - component: "velero"
+      configs: "false"
+    - component: "longhorn"
+      configs: "false"
+    - component: "monitoring"
+      configs: "false"
+    - component: "loki"
+      configs: "false"
+    - component: "tempo"
+      configs: "false"
+    - component: "opentelemetry"
+      configs: "false"
+    - component: "vector"
+      configs: "false"
+  resources:
+    - apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: << inputs.component >>
+        labels:
+          toolkit.fluxcd.io/role: "infra"
+    - apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: flux
+        namespace: << inputs.component >>
+    - apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: flux-infra-<< inputs.component >>
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: cluster-admin
+      subjects:
+        - kind: ServiceAccount
+          name: flux
+          namespace: << inputs.component >>
+    - apiVersion: source.toolkit.fluxcd.io/v1
+      kind: OCIRepository
+      metadata:
+        name: infra
+        namespace: << inputs.component >>
+      spec:
+        interval: 5m
+        serviceAccountName: flux
+        url: "oci://${REGISTRY_HOST}/${REPOSITORY}/infrastructure/<< inputs.component >>"
+        ref:
+          tag: latest
+        insecure: ${REGISTRY_INSECURE}
+    - apiVersion: kustomize.toolkit.fluxcd.io/v1
+      kind: Kustomization
+      metadata:
+        name: infra-controllers
+        namespace: << inputs.component >>
+      spec:
+        targetNamespace: << inputs.component >>
+        serviceAccountName: flux
+        interval: 30m
+        retryInterval: 5m
+        wait: true
+        timeout: 5m
+        sourceRef:
+          kind: OCIRepository
+          name: infra
+        path: "./controllers/${ENVIRONMENT}"
+        prune: true
+    - apiVersion: kustomize.toolkit.fluxcd.io/v1
+      kind: Kustomization
+      metadata:
+        name: infra-configs
+        namespace: << inputs.component >>
+        annotations:
+          fluxcd.controlplane.io/reconcile: << if eq inputs.configs "true" >>enabled<< else >>disabled<< end >>
+      spec:
+        dependsOn:
+          - name: infra-controllers
+        targetNamespace: << inputs.component >>
+        serviceAccountName: flux
+        interval: 30m
+        retryInterval: 5m
+        wait: true
+        timeout: 5m
+        sourceRef:
+          kind: OCIRepository
+          name: infra
+        path: "./configs/${ENVIRONMENT}"
+        prune: true

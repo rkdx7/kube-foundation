@@ -1,0 +1,37 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: loki
+  namespace: loki
+spec:
+  interval: 24h
+  url: https://grafana.github.io/helm-charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: loki
+  namespace: loki
+spec:
+  interval: 30m
+  releaseName: loki
+  chart:
+    spec:
+      chart: loki
+      sourceRef:
+        kind: HelmRepository
+        name: loki
+  values:
+    deploymentMode: SingleBinary
+    singleBinary:
+      replicas: 1
+    backend:
+      replicas: 0
+    read:
+      replicas: 0
+    write:
+      replicas: 0
+    loki:
+      useTestSchema: true
+      storage:
+        type: filesystem

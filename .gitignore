@@ -1,0 +1,23 @@
+# Devbox local state
+.devbox/
+
+# SOPS-encrypted secrets (decrypted files are never committed)
+*.enc.yaml
+*.enc.yml
+*.dec.yaml
+
+# Certificates and private keys
+*.key
+*.crt
+*.pem
+config/registry/certs/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Terraform state
+terraform/.terraform/
+terraform/*.tfstate*

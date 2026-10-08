@@ -1,0 +1,40 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: openbao
+  namespace: openbao
+spec:
+  interval: 24h
+  url: https://openbao.github.io/openbao-helm
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: openbao
+  namespace: openbao
+spec:
+  interval: 30m
+  releaseName: openbao
+  chart:
+    spec:
+      chart: openbao
+      sourceRef:
+        kind: HelmRepository
+        name: openbao
+  values:
+    server:
+      standalone:
+        enabled: false
+      ha:
+        enabled: true
+        replicas: 3
+        raft:
+          enabled: true
+          setNodeId: true
+      dataStorage:
+        enabled: true
+        size: 10Gi
+    ui:
+      enabled: true
+    injector:
+      enabled: true
