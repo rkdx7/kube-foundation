@@ -9,8 +9,10 @@ spec:
   inputs:
     - component: "frontend"
       tag: "1.0.0"
+      shard: "shard-platform"
     - component: "backend"
       tag: "1.0.0"
+      shard: "shard-platform"
   resources:
     - apiVersion: v1
       kind: Namespace
@@ -41,6 +43,8 @@ spec:
       metadata:
         name: apps
         namespace: << inputs.component >>
+        labels:
+          sharding.fluxcd.io/key: "<< inputs.shard >>"
       spec:
         interval: 5m
         serviceAccountName: flux
@@ -53,9 +57,14 @@ spec:
       metadata:
         name: apps
         namespace: << inputs.component >>
+        labels:
+          sharding.fluxcd.io/key: "<< inputs.shard >>"
       spec:
         targetNamespace: << inputs.component >>
         serviceAccountName: flux
+        commonMetadata:
+          labels:
+            sharding.fluxcd.io/key: "<< inputs.shard >>"
         interval: 30m
         retryInterval: 5m
         wait: true

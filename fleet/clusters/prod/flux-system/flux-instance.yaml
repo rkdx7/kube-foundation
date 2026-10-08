@@ -24,6 +24,13 @@ spec:
     tenantDefaultServiceAccount: flux
     networkPolicy: true
     domain: "cluster.local"
+  sharding:
+    key: "sharding.fluxcd.io/key"
+    shards:
+      - "shard-core"
+      - "shard-security"
+      - "shard-observability"
+      - "shard-platform"
   sync:
     kind: OCIRepository
     url: "oci://${REGISTRY_HOST}/${REPOSITORY}/fleet"

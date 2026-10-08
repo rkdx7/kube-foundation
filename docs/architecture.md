@@ -90,3 +90,12 @@ Each component's `Kustomization` then reconciles its own OCI artifact:
 `FluxInstance.cluster.multitenant: true` enables Flux multi-tenancy lockdown.
 Each infra component runs under a `cluster-admin`-bound `flux` ServiceAccount; each
 app runs under a namespace-scoped `admin`-bound ServiceAccount (least privilege).
+
+## Sharding
+
+The `prod` `FluxInstance` declares `spec.sharding` with four domain shards
+(`shard-core`, `shard-security`, `shard-observability`, `shard-platform`). Each
+tenant `ResourceSet` carries a `shard` input that is rendered into the
+`sharding.fluxcd.io/key` label on the generated `OCIRepository` + `Kustomization`
+(and propagated via `commonMetadata` to the `HelmRelease`s they apply). `staging`
+runs unsharded. See [docs/sharding.md](sharding.md).

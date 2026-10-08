@@ -10,57 +10,75 @@ spec:
     - component: "cilium"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-core"
     - component: "ingress-nginx"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-core"
     - component: "cert-manager"
       configs: "true"
       tag: "1.0.0"
+      shard: "shard-core"
     - component: "external-dns"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-core"
     - component: "external-secrets"
       configs: "true"
       tag: "1.0.0"
+      shard: "shard-security"
     - component: "openbao"
       configs: "true"
       tag: "1.0.0"
+      shard: "shard-security"
     - component: "kyverno"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-security"
     - component: "falco"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-security"
     - component: "trivy"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-security"
     - component: "istio"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-platform"
     - component: "keda"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-platform"
     - component: "velero"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-platform"
     - component: "longhorn"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-platform"
     - component: "monitoring"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-observability"
     - component: "loki"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-observability"
     - component: "tempo"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-observability"
     - component: "opentelemetry"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-observability"
     - component: "vector"
       configs: "false"
       tag: "1.0.0"
+      shard: "shard-observability"
   resources:
     - apiVersion: v1
       kind: Namespace
@@ -90,6 +108,8 @@ spec:
       metadata:
         name: infra
         namespace: << inputs.component >>
+        labels:
+          sharding.fluxcd.io/key: "<< inputs.shard >>"
       spec:
         interval: 5m
         serviceAccountName: flux
@@ -102,9 +122,14 @@ spec:
       metadata:
         name: infra-controllers
         namespace: << inputs.component >>
+        labels:
+          sharding.fluxcd.io/key: "<< inputs.shard >>"
       spec:
         targetNamespace: << inputs.component >>
         serviceAccountName: flux
+        commonMetadata:
+          labels:
+            sharding.fluxcd.io/key: "<< inputs.shard >>"
         interval: 30m
         retryInterval: 5m
         wait: true
@@ -119,6 +144,8 @@ spec:
       metadata:
         name: infra-configs
         namespace: << inputs.component >>
+        labels:
+          sharding.fluxcd.io/key: "<< inputs.shard >>"
         annotations:
           fluxcd.controlplane.io/reconcile: << if eq inputs.configs "true" >>enabled<< else >>disabled<< end >>
       spec:
@@ -126,6 +153,9 @@ spec:
           - name: infra-controllers
         targetNamespace: << inputs.component >>
         serviceAccountName: flux
+        commonMetadata:
+          labels:
+            sharding.fluxcd.io/key: "<< inputs.shard >>"
         interval: 30m
         retryInterval: 5m
         wait: true

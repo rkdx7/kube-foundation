@@ -142,12 +142,19 @@ See [docs/secrets.md](docs/secrets.md).
 External Secrets store, Velero backend) are selected per provider — see
 [docs/multi-cloud.md](docs/multi-cloud.md).
 
+## Sharding
+
+The `prod` cluster is horizontally sharded (4 domain shards) so Flux reconciliation
+scales out and stays isolated per domain. `staging` stays unsharded. See
+[docs/sharding.md](docs/sharding.md).
+
 ## Documentation
 
 - [docs/architecture.md](docs/architecture.md) — how the pieces fit together
 - [docs/bootstrap.md](docs/bootstrap.md) — production & multi-cloud bootstrap
 - [docs/secrets.md](docs/secrets.md) — SOPS + ESO
 - [docs/multi-cloud.md](docs/multi-cloud.md) — AWS / GCP / Azure / on-prem
+- [docs/sharding.md](docs/sharding.md) — horizontal sharding of the prod cluster
 
 ## License & attribution
 
