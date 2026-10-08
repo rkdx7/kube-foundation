@@ -8,7 +8,9 @@ metadata:
 spec:
   inputs:
     - component: "frontend"
+      tag: "1.0.0"
     - component: "backend"
+      tag: "1.0.0"
   resources:
     - apiVersion: v1
       kind: Namespace
@@ -44,7 +46,7 @@ spec:
         serviceAccountName: flux
         url: "oci://${REGISTRY_HOST}/${REPOSITORY}/apps/<< inputs.component >>"
         ref:
-          tag: "${OCI_VERSION}"
+          tag: << inputs.tag >>
         insecure: ${REGISTRY_INSECURE}
     - apiVersion: kustomize.toolkit.fluxcd.io/v1
       kind: Kustomization

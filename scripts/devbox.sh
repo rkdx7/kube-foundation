@@ -51,11 +51,6 @@ ZOT_IMAGE="${ZOT_IMAGE:-ghcr.io/project-zot/zot-linux-amd64:v2.1.4}"
 # Environment to render/bootstrap (staging or prod).
 ENVIRONMENT="${ENVIRONMENT:-staging}"
 
-# OCI artifact version (monorepo-wide, decoupled from component chart versions).
-# Sourced from versions.yaml, overridable via env. Pushed in addition to `latest`.
-OCI_VERSION="${OCI_VERSION:-$(grep -E '^oci:' "${ROOT_DIR}/versions.yaml" 2>/dev/null | head -1 | sed -E 's/^oci:[[:space:]]*"?([^"]*)"?.*$/\1/')}"
-OCI_VERSION="${OCI_VERSION:-latest}"
-
 # Fleet artifact version baked into the FluxInstance `sync.ref`. Defaults to
 # `latest`; set it per environment to pin the fleet release a cluster consumes.
 FLEET_VERSION="${FLEET_VERSION:-latest}"
@@ -119,14 +114,13 @@ render_tree() {
   export REGISTRY_INSECURE="${insecure}"
   export REPOSITORY="${repo}"
   export FLEET_VERSION
-  export OCI_VERSION
 
   while IFS= read -r -d '' f; do
     # Only process textual files (skip binaries/images).
     if file -b --mime-encoding "$f" | grep -qE 'binary'; then
       continue
     fi
-    envsubst '${REGISTRY_HOST} ${REGISTRY_INSECURE} ${REPOSITORY} ${FLEET_VERSION} ${OCI_VERSION}' < "$f" > "$f.tmp"
+    envsubst '${REGISTRY_HOST} ${REGISTRY_INSECURE} ${REPOSITORY} ${FLEET_VERSION}' < "$f" > "$f.tmp"
     mv "$f.tmp" "$f"
   done < <(find "${dst}" -type f -print0)
 }
@@ -225,28 +219,41 @@ cmd_build() {
     fi
   }
 
-  log "packaging OCI artifacts (OCI_VERSION=${OCI_VERSION})..."
+  # Read a component's OCI artifact tag from a tenant ResourceSet (the single
+  # source of truth for the artifact version). Falls back to "latest".
+  rs_tag() {
+    local file="$1" component="$2" v
+    v="$(awk -v c="${component}" '
+      /^    - component:/ { comp=$0; sub(/.*component: "/,"",comp); sub(/".*/,"",comp) }
+      comp == c && /^      tag:/ { t=$0; sub(/.*tag: "/,"",t); sub(/".*/,"",t); print t; exit }
+    ' "${file}")"
+    echo "${v:-latest}"
+  }
+
+  log "packaging OCI artifacts..."
 
   # fleet (per cluster/environment)
-  push_artifact "oci://${REGISTRY_PUSH}/${REPOSITORY}/fleet" "${RENDER_DIR}/fleet" "${OCI_VERSION}"
+  push_artifact "oci://${REGISTRY_PUSH}/${REPOSITORY}/fleet" "${RENDER_DIR}/fleet" "${FLEET_VERSION}"
 
-  # infrastructure components (one artifact per component, same OCI version)
+  # infrastructure components (one artifact per component, version from the ResourceSet)
   local comp
   for comp in "${ROOT_DIR}"/infrastructure/components/*/; do
     [ -d "$comp" ] || continue
-    local name
+    local name tag
     name="$(basename "$comp")"
+    tag="$(rs_tag "${ROOT_DIR}/fleet/tenants/infra.yaml" "${name}")"
     render_tree "${comp}" "${RENDER_DIR}/infrastructure/${name}" "${host}" "${insecure}" "${REPOSITORY}"
-    push_artifact "oci://${REGISTRY_PUSH}/${REPOSITORY}/infrastructure/${name}" "${RENDER_DIR}/infrastructure/${name}" "${OCI_VERSION}"
+    push_artifact "oci://${REGISTRY_PUSH}/${REPOSITORY}/infrastructure/${name}" "${RENDER_DIR}/infrastructure/${name}" "${tag}"
   done
 
-  # app components
+  # app components (version from the ResourceSet)
   for comp in "${ROOT_DIR}"/apps/components/*/; do
     [ -d "$comp" ] || continue
-    local name
+    local name tag
     name="$(basename "$comp")"
+    tag="$(rs_tag "${ROOT_DIR}/fleet/tenants/apps.yaml" "${name}")"
     render_tree "${comp}" "${RENDER_DIR}/apps/${name}" "${host}" "${insecure}" "${REPOSITORY}"
-    push_artifact "oci://${REGISTRY_PUSH}/${REPOSITORY}/apps/${name}" "${RENDER_DIR}/apps/${name}" "${OCI_VERSION}"
+    push_artifact "oci://${REGISTRY_PUSH}/${REPOSITORY}/apps/${name}" "${RENDER_DIR}/apps/${name}" "${tag}"
   done
 
   ok "build complete (artifacts pushed to ${REGISTRY_PUSH}/${REPOSITORY})"
