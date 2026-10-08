@@ -36,17 +36,17 @@ Operator (`ClusterSecretStore openbao`, KV v2 sur le chemin `apps`).
 | `ui.enabled` | `true` |
 | `injector.enabled` | `true` (sidecar injector Vault/OpenBao) |
 
-`configs/{staging,prod}/ingress.yaml` : Ingress vers `openbao-active` (service actif),
-hôte `openbao.{staging,prod}.example.com`, TLS via cert-manager (`letsencrypt-*`).
+`configs/base/httproute.yaml` : `HTTPRoute` vers `openbao-active` (service actif),
+hôte injecté via le tenant (`${HOST}`), TLS terminé à la Gateway kgateway.
 
-Fichiers clés : `controllers/base/openbao.yaml` + `configs/*/ingress.yaml`.
+Fichiers clés : `controllers/base/openbao.yaml` + `configs/base/httproute.yaml`.
 
 ## Configurations à considérer
 
 - **Unseal** : par défaut OpenBao doit être **dés scellé** (Shamir) au premier démarrage ;
   envisager l'**auto-unseal** (Transit, KMS cloud) pour éviter l'étape manuelle.
 - **Stockage** : Raft (intégré, utilisé ici) vs Consul/externe ; prévoir des snapshots Raft.
-- **TLS** : en interne le cluster est en HTTP (TLS terminé à l'edge par ingress-nginx) ;
+- **TLS** : en interne le cluster est en HTTP (TLS terminé à l'edge par kgateway) ;
   durcir avec TLS interne si besoin.
 - **Audit** : activer un `audit device` (fichier/socket) pour la traçabilité.
 - **Auth & rôles** : méthode `kubernetes` (mount `kubernetes`, rôle `eso`), OIDC pour l'UI.
@@ -82,7 +82,7 @@ Fichiers clés : `controllers/base/openbao.yaml` + `configs/*/ingress.yaml`.
    bao kv put apps/demo/app password=s3cr3t
    kubectl get secret demo-app-secret -n frontend
    ```
-5. Accéder à l'UI : `http://openbao.example.com` (via Ingress) ou port-forward du service `openbao`.
+5. Accéder à l'UI : `http://openbao.example.com` (via HTTPRoute) ou port-forward du service `openbao`.
 
 ## Dashboard
 

@@ -14,7 +14,7 @@ ExternalDNS **synchronise les enregistrements DNS** avec votre fournisseur DNS
 (Route53, Cloudflare, Google Cloud DNS, Azure DNS, …) à partir des ressources
 Kubernetes (`Service` de type LoadBalancer, `Ingress`, `Gateway`, CRDs).
 
-Dès qu'un Ingress/Service déclare un nom d'hôte, ExternalDNS crée/maintient l'enregistrement
+Dès qu'un HTTPRoute/Service déclare un nom d'hôte, ExternalDNS crée/maintient l'enregistrement
 DNS correspondant. C'est le chaînon manquant entre le cluster et le DNS public.
 
 ## Configuration appliquée (dans ce dépôt)
@@ -25,7 +25,7 @@ DNS correspondant. C'est le chaînon manquant entre le cluster et le DNS public.
 | Namespace | `external-dns` |
 | `provider` | `aws` (Route53) |
 | `policy` | `sync` (créer **et supprimer** les enregistrements) |
-| `sources` | `service`, `ingress` |
+| `sources` | `service`, `gateway-httproute` |
 
 Fichier clé : `controllers/base/external-dns.yaml` — la `HelmRelease`.
 
@@ -44,16 +44,16 @@ Fichier clé : `controllers/base/external-dns.yaml` — la `HelmRelease`.
 
 ## Mini-formation
 
-1. Annoter un `Service`/`Ingress` :
+1. Déclarer un `HTTPRoute` (les hostnames sont lus depuis `spec.hostnames`) :
    ```yaml
-   apiVersion: networking.k8s.io/v1
-   kind: Ingress
+   apiVersion: gateway.networking.k8s.io/v1
+   kind: HTTPRoute
    metadata:
      name: demo
-     annotations:
-       external-dns.alpha.kubernetes.io/hostname: demo.example.com
    spec:
-     rules: [ { host: demo.example.com, http: { paths: [ { path: /, pathType: Prefix, backend: { service: { name: demo, port: { number: 80 } } } } ] } } ]
+     parentRefs: [ { name: kgateway, namespace: kgateway } ]
+     hostnames: [ demo.example.com ]
+     rules: [ { backendRefs: [ { name: demo, port: 80 } ] } ]
    ```
 2. Vérifier que l'enregistrement est créé :
    ```bash

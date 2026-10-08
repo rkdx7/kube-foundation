@@ -19,7 +19,7 @@ avec des sidecars Envoy injectés dans chaque pod. Il fournit :
 - **politiques** (autorisation, rate-limiting) via `VirtualService`,
   `DestinationRule`, `PeerAuthentication`, `AuthorizationPolicy`.
 
-Dans ce dépôt il fonctionne en complément d'ingress-nginx (entrée nord-sud) et
+Dans ce dépôt il fonctionne en complément de kgateway (entrée nord-sud) et
 d'ExternalDNS/cert-manager.
 
 ## Configuration appliquée (dans ce dépôt)

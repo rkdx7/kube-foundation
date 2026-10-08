@@ -83,7 +83,7 @@ Each component's `Kustomization` then reconciles its own OCI artifact:
 
 - `infra-controllers` → `./controllers/<env>` (the HelmReleases)
 - `infra-configs`   → `./configs/<env>` (post-install config, e.g. ClusterIssuers)
-- `apps`            → `./<env>` (Deployments, Services, Ingress)
+- `apps`            → `./<env>` (Deployments, Services, HTTPRoute)
 
 ## Multi-tenancy
 

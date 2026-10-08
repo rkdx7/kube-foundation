@@ -98,7 +98,7 @@ spec:
 
 OpenBao is installed as an infrastructure component (`openbao`) in HA mode with
 integrated Raft storage (3 replicas) and the agent injector enabled. It is exposed
-through ingress-nginx with a cert-manager issued certificate (`openbao` ingress).
+through kgateway with a cert-manager issued certificate (`openbao` HTTPRoute).
 
 Initialise and unseal the cluster once it is running:
 

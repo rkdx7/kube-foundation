@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kgateway-tls
+  namespace: kgateway
+spec:
+  secretName: kgateway-tls
+  issuerRef:
+    name: ${ISSUER}
+    kind: ClusterIssuer
+  dnsNames:
+    - frontend.${CLUSTER_DOMAIN}
+    - openbao.${CLUSTER_DOMAIN}

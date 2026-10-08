@@ -50,7 +50,7 @@ Tempo (traces) pour l'observabilité « trois piliers ».
 - **Alertmanager** : configurer les receivers (Slack, PagerDuty, email) et les routes.
 - **Persistance** : activer les PVC pour Prometheus/Grafana (sinon données volatiles).
 - **Rétention** : `retention` et `retentionSize` de Prometheus.
-- **Grafana** : changer `adminPassword`, exposer via Ingress, ajouter SSO (OIDC/LDAP),
+- **Grafana** : changer `adminPassword`, exposer via HTTPRoute, ajouter SSO (OIDC/LDAP),
   provisionner des dashboards/datasources (Loki, Tempo).
 - **Thanos / remote-write** : pour la longue durée et la fédération multi-cluster.
 - **Scrape additionnel** : `additionalScrapeConfigs` pour les endpoints custom.

@@ -27,4 +27,4 @@ spec:
     policy: sync
     sources:
       - service
-      - ingress
+      - gateway-httproute

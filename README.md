@@ -36,7 +36,7 @@ templated resource generation), matching the [Flux D2 reference architecture](ht
 |---|---|
 | GitOps | Flux Operator (`FluxInstance`, `ResourceSet`) |
 | Networking | Cilium (CNI + Hubble) |
-| Ingress & TLS | ingress-nginx, cert-manager, ExternalDNS |
+| Ingress & TLS | kgateway, cert-manager, ExternalDNS |
 | Service mesh | Istio (base, istiod, gateway) |
 | Observability | kube-prometheus-stack (Prometheus/Grafana/Alertmanager), Loki, Tempo, OpenTelemetry Collector, Vector (log agent), metrics-server |
 | Secrets | External Secrets Operator + SOPS (age), OpenBao (Vault fork, HA) |

@@ -11,8 +11,8 @@ spec:
       configs: "false"
       tag: "1.0.0"
       shard: "shard-core"
-    - component: "ingress-nginx"
-      configs: "false"
+    - component: "kgateway"
+      configs: "true"
       tag: "1.0.0"
       shard: "shard-core"
     - component: "cert-manager"
@@ -29,6 +29,7 @@ spec:
       shard: "shard-security"
     - component: "openbao"
       configs: "true"
+      host: "openbao.${CLUSTER_DOMAIN}"
       tag: "1.0.0"
       shard: "shard-security"
     - component: "kyverno"
@@ -103,6 +104,17 @@ spec:
         - kind: ServiceAccount
           name: flux
           namespace: << inputs.component >>
+    - apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: << inputs.component >>-config
+        namespace: << inputs.component >>
+        annotations:
+          fluxcd.controlplane.io/reconcile: << if eq inputs.configs "true" >>enabled<< else >>disabled<< end >>
+      data:
+        HOST: '<< inputs.host | default "" >>'
+        CLUSTER_DOMAIN: "${CLUSTER_DOMAIN}"
+        ISSUER: "letsencrypt-${ENVIRONMENT}"
     - apiVersion: source.toolkit.fluxcd.io/v1
       kind: OCIRepository
       metadata:
@@ -130,6 +142,25 @@ spec:
         commonMetadata:
           labels:
             sharding.fluxcd.io/key: "<< inputs.shard >>"
+        # The shard label is applied by `commonMetadata` to the HelmRepository and
+        # HelmRelease, but not to the HelmChart that helm-controller auto-generates
+        # for a `chart.spec.sourceRef`. Without it the unsharded source-controller
+        # reconciles the HelmChart and cannot find the shard-labelled HelmRepository
+        # (the sharded source-controller ignores the unlabelled HelmChart). Pin the
+        # same shard key onto every generated HelmChart via its template metadata.
+        patches:
+          - target:
+              kind: HelmRelease
+            patch: |-
+              apiVersion: helm.toolkit.fluxcd.io/v2
+              kind: HelmRelease
+              metadata:
+                name: not-used
+              spec:
+                chart:
+                  metadata:
+                    labels:
+                      sharding.fluxcd.io/key: "<< inputs.shard >>"
         interval: 30m
         retryInterval: 5m
         wait: true
@@ -165,3 +196,7 @@ spec:
           name: infra
         path: "./configs/${ENVIRONMENT}"
         prune: true
+        postBuild:
+          substituteFrom:
+            - kind: ConfigMap
+              name: << inputs.component >>-config
