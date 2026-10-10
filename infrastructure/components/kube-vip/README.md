@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/kube-vip/kube-vip/main/docs/images/kube-vip.png" alt="kube-vip logo" width="160" />
+  <img src="https://raw.githubusercontent.com/kube-vip/kube-vip/main/kube-vip.png" alt="kube-vip logo" width="160" />
 </p>
 
 # kube-vip
