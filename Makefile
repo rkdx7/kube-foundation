@@ -6,7 +6,7 @@
 SHELL := /bin/bash
 DEBOX := ./scripts/devbox.sh
 
-.PHONY: help devbox registry build cluster bootstrap test down clean
+.PHONY: help devbox registry build cluster bootstrap openbao test down clean
 
 help: ## Show available targets
 	@echo "kube-foundation"
@@ -16,15 +16,17 @@ help: ## Show available targets
 	@echo "  make build        Build container images + OCI artifacts"
 	@echo "  make cluster      Create the kind cluster"
 	@echo "  make bootstrap    Install Flux Operator + FluxInstance + sync"
+	@echo "  make openbao      Initialize + unseal + configure OpenBao"
 	@echo "  make test         Run reconciliation smoke tests"
 	@echo "  make down         Tear down kind + registry"
 	@echo "  make clean        Remove local build state (.devbox)"
 
-devbox: registry build cluster bootstrap test ## Full local loop
+devbox: registry build cluster bootstrap openbao test ## Full local loop
 	@$(DEBOX) registry start
 	@$(DEBOX) build
 	@$(DEBOX) cluster up
 	@$(DEBOX) bootstrap
+	@$(DEBOX) openbao
 	@$(DEBOX) test
 
 registry: ## Start the local OCI registry (zot)
@@ -38,6 +40,9 @@ cluster: ## Create the kind cluster
 
 bootstrap: ## Install Flux Operator + FluxInstance + sync
 	@$(DEBOX) bootstrap
+
+openbao: ## Initialize + unseal + configure OpenBao
+	@$(DEBOX) openbao
 
 test: ## Run smoke tests
 	@$(DEBOX) test

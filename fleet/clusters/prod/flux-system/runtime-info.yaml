@@ -13,6 +13,10 @@ data:
   CLUSTER_NAME: prod
   CLUSTER_DOMAIN: prod.example.com
   PROVIDER: aws
+  # Production uses a real Let's Encrypt issuer. Replace the ACME_EMAIL
+  # placeholder with a real address (Let's Encrypt rejects example.com).
+  ISSUER: letsencrypt-prod
+  ACME_EMAIL: letsencrypt@example.com
   REGISTRY_HOST: "${REGISTRY_HOST}"
   REGISTRY_INSECURE: "${REGISTRY_INSECURE}"
   REPOSITORY: "${REPOSITORY}"

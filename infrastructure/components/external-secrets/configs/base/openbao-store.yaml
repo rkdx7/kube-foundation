@@ -1,10 +1,10 @@
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
   name: openbao
 spec:
   provider:
-    openbao:
+    openBao:
       # In-cluster active-node service of the OpenBao HA cluster (plain HTTP,
       # TLS is terminated at the ingress edge).
       server: "http://openbao-active.openbao.svc:8200"
@@ -14,14 +14,14 @@ spec:
       auth:
         kubernetes:
           # Kubernetes auth mount path (`bao auth enable kubernetes`).
-          mountPath: "kubernetes"
+          path: "kubernetes"
           # OpenBao role bound to the external-secrets ServiceAccount.
           role: "eso"
           serviceAccountRef:
             name: external-secrets
             namespace: external-secrets
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: demo-app

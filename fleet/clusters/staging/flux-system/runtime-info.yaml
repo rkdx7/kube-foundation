@@ -13,6 +13,10 @@ data:
   CLUSTER_NAME: staging
   CLUSTER_DOMAIN: staging.example.com
   PROVIDER: onprem
+  # Local/offline environments cannot complete a Let's Encrypt ACME challenge
+  # (no public DNS), so staging uses a self-signed issuer.
+  ISSUER: self-signed
+  ACME_EMAIL: ""
   REGISTRY_HOST: "${REGISTRY_HOST}"
   REGISTRY_INSECURE: "${REGISTRY_INSECURE}"
   REPOSITORY: "${REPOSITORY}"

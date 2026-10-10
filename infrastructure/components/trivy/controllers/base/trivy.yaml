@@ -26,3 +26,9 @@ spec:
     installCRDs: true
     trivy:
       ignoreUnfixed: true
+    nodeCollector:
+      # The node-collector scan job targets each node via nodeSelector but its
+      # tolerations are ignored (trivy-operator bug #2761), so it stays Pending
+      # on the tainted kind control-plane. Exclude the control-plane from node
+      # collection instead; it only gathers config/compliance data for the node.
+      excludeNodes: "node-role.kubernetes.io/control-plane="

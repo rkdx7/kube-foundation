@@ -10,6 +10,7 @@
 #   cluster up       Create a kind cluster wired to the local registry.
 #   bootstrap        Install Flux Operator (Helm), apply the FluxInstance and
 #                    let Flux reconcile the OCI artifacts.
+#   openbao          Initialize + unseal + configure OpenBao (one-time).
 #   test             Wait for reconciliation and run smoke tests.
 #   down             Tear everything down.
 #   clean            Remove local state only.
@@ -77,15 +78,19 @@ registry_running() {
 }
 
 # The registry is attached to the kind network, so from inside the kind nodes it
-# is reachable at its container IP on that network. This works for both rootful
-# and rootless Docker, and the IP is known at build time (the network is created
-# before the registry, and kind reuses it).
+# is reachable at its container IP on that network. We prefer the network's
+# *gateway* address (the host's address on the kind bridge) because it is stable:
+# the registry publishes its port on 0.0.0.0, so the nodes can always reach it at
+# <gateway>:<port>, whereas the container's own IP is reassigned every time the
+# registry container is recreated (which silently breaks every baked-in OCI URL
+# and containerd mirror). Falls back to the container IP when the gateway is
+# unavailable.
 resolve_pull_host() {
   if [ -z "${REGISTRY_PULL}" ]; then
     local ip
-    ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "${REGISTRY_NAME}" 2>/dev/null || true)"
+    ip="$(docker network inspect "${KIND_NETWORK}" -f '{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || true)"
     if [ -z "${ip}" ]; then
-      ip="$(docker network inspect "${KIND_NETWORK}" -f '{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || true)"
+      ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "${REGISTRY_NAME}" 2>/dev/null || true)"
     fi
     [ -z "${ip}" ] && die "could not determine the registry in-cluster address"
     REGISTRY_PULL="${ip}:${REGISTRY_PORT}"
@@ -95,6 +100,26 @@ resolve_pull_host() {
 
 ensure_network() {
   docker network inspect "${KIND_NETWORK}" >/dev/null 2>&1 || docker network create "${KIND_NETWORK}" >/dev/null
+}
+
+# The host kernel's fs.inotify.max_user_instances defaults to 128. The local loop
+# runs many inotify consumers as root on the host: dockerd, the kind nodes
+# (containerd/kubelet/cilium/falco inside each node) and the zot registry. When
+# that budget is exhausted, zot panics at startup with "failed to create htpasswd
+# watcher" (fsnotify.NewWatcher -> inotify_init -> EMFILE). Bump the host limit,
+# mirroring what we already do inside the kind nodes for Falco.
+ensure_host_inotify() {
+  local current want=1024
+  current="$(cat /proc/sys/fs/inotify/max_user_instances 2>/dev/null || echo 0)"
+  [ "${current}" -ge "${want}" ] && return 0
+
+  if sysctl -w fs.inotify.max_user_instances="${want}" >/dev/null 2>&1; then
+    ok "host fs.inotify.max_user_instances raised ${current} -> ${want}"
+    return 0
+  fi
+
+  warn "host fs.inotify.max_user_instances is ${current} (want >= ${want})."
+  die "run: sudo sysctl -w fs.inotify.max_user_instances=${want}"
 }
 
 # ---------------------------------------------------------------------------
@@ -133,6 +158,7 @@ cmd_registry() {
   case "${action}" in
     start)
       need docker curl
+      ensure_host_inotify
       ensure_network
       if registry_running; then
         log "registry ${REGISTRY_NAME} already running"
@@ -341,13 +367,23 @@ cmd_bootstrap() {
   log "installing Flux Operator (Helm)..."
   kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
-  helm upgrade --install flux-operator \
-    oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator \
-    --namespace flux-system \
-    --set multitenancy.enabled=true \
-    --set multitenancy.defaultServiceAccount=flux-operator \
-    --set reporting.interval=45s \
-    --wait
+  # Once the FluxInstance's `flux-operator` ResourceSet has been applied, Flux
+  # self-manages the operator via its own HelmRelease. Re-running the manual
+  # `helm upgrade --install` then conflicts with helm-controller over the
+  # `helm.sh/chart` field ownership, so skip it when the operator is already
+  # self-managed. On a fresh cluster (no HelmRelease) the manual install still
+  # bootstraps the operator before the FluxInstance is applied.
+  if kubectl -n flux-system get helmrelease flux-operator >/dev/null 2>&1; then
+    log "flux-operator already self-managed by Flux — skipping manual Helm install"
+  else
+    helm upgrade --install flux-operator \
+      oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator \
+      --namespace flux-system \
+      --set multitenancy.enabled=true \
+      --set multitenancy.defaultServiceAccount=flux-operator \
+      --set reporting.interval=45s \
+      --wait
+  fi
 
   log "waiting for flux-operator deployment..."
   kubectl -n flux-system rollout status deploy/flux-operator --timeout=180s >/dev/null
@@ -359,6 +395,90 @@ cmd_bootstrap() {
   kubectl -n flux-system wait fluxinstance/flux --for=condition=ready --timeout=300s
 
   ok "bootstrap complete — Flux is reconciling the OCI artifacts"
+}
+
+# ---------------------------------------------------------------------------
+# Subcommand: openbao
+# ---------------------------------------------------------------------------
+# One-time OpenBao bootstrap for the local devbox: initialize the Shamir seal,
+# unseal every HA replica (created one at a time by the ordered StatefulSet),
+# enable the KV v2 engine + Kubernetes auth method that the External Secrets
+# Operator expects, then write the demo secret. Idempotent.
+cmd_openbao() {
+  need kubectl
+
+  log "waiting for OpenBao pods to be created..."
+  kubectl -n openbao wait --for=jsonpath='{.status.phase}'=Running pod/openbao-0 --timeout=600s >/dev/null 2>&1 \
+    || die "openbao-0 not running — is the OpenBao component reconciled?"
+
+  local unseal_key root_token initialized sealed pod
+
+  initialized="$(openbao_field openbao-0 '^Initialized')"
+
+  if [ "${initialized}" = "true" ]; then
+    log "OpenBao already initialized"
+  else
+    log "initializing OpenBao (1 unseal key, threshold 1)..."
+    local init_out
+    init_out="$(kubectl -n openbao exec openbao-0 -- bao operator init -key-shares=1 -key-threshold=1 -format=json 2>/dev/null)"
+    # `bao -format=json` pretty-prints, so the unseal key sits on the line after
+    # "unseal_keys_b64" and the root token on the "root_token" line.
+    unseal_key="$(printf '%s' "$init_out" | grep -A1 'unseal_keys_b64' | tail -1 | tr -d ' ",\n\t')"
+    root_token="$(printf '%s' "$init_out" | grep 'root_token' | tr -d ' ",\n\t' | sed 's/^.*root_token://')"
+    [ -z "${unseal_key}" ] && die "failed to parse the OpenBao unseal key from init output"
+    kubectl -n openbao create secret generic openbao-bootstrap \
+      --from-literal=unseal-key="${unseal_key}" \
+      --from-literal=root-token="${root_token}" \
+      --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+  fi
+
+  unseal_key="$(kubectl -n openbao get secret openbao-bootstrap -o jsonpath='{.data.unseal-key}' 2>/dev/null | base64 -d)"
+  root_token="$(kubectl -n openbao get secret openbao-bootstrap -o jsonpath='{.data.root-token}' 2>/dev/null | base64 -d)"
+  [ -z "${unseal_key}" ] && die "openbao-bootstrap secret missing"
+
+  # Unseal each replica as the ordered StatefulSet creates it (openbao-1 and
+  # openbao-2 are only scheduled once openbao-0 becomes Ready).
+  for pod in openbao-0 openbao-1 openbao-2; do
+    log "waiting for ${pod} to be running..."
+    for _ in $(seq 1 120); do
+      kubectl -n openbao get pod "${pod}" >/dev/null 2>&1 && break
+      sleep 5
+    done
+    kubectl -n openbao get pod "${pod}" >/dev/null 2>&1 || { warn "${pod} not created yet"; continue; }
+
+    sealed="$(openbao_field "${pod}" '^Sealed')"
+    if [ "${sealed}" = "true" ]; then
+      log "unsealing ${pod}..."
+      kubectl -n openbao exec "${pod}" -- bao operator unseal "${unseal_key}" >/dev/null 2>&1 || true
+      kubectl -n openbao wait --for=condition=Ready pod "${pod}" --timeout=120s >/dev/null 2>&1 || true
+    else
+      log "${pod} already unsealed"
+    fi
+  done
+
+  # Configure (idempotent): login + KV v2 + kubernetes auth + eso role + demo secret.
+  log "configuring OpenBao (KV v2 'apps', kubernetes auth, 'eso' role, demo secret)..."
+  kubectl -n openbao exec openbao-0 -- bao login "${root_token}" >/dev/null 2>&1 || true
+  kubectl -n openbao exec openbao-0 -- bao secrets enable -path=apps kv-v2 2>/dev/null || true
+  kubectl -n openbao exec openbao-0 -- bao auth enable kubernetes 2>/dev/null || true
+  printf 'path "apps/data/*" { capabilities = ["read"] }\n' \
+    | kubectl -n openbao exec -i openbao-0 -- bao policy write eso - >/dev/null 2>&1 || true
+  kubectl -n openbao exec openbao-0 -- bao write auth/kubernetes/role/eso \
+    bound_service_account_names=external-secrets \
+    bound_service_account_namespaces=external-secrets \
+    policies=eso ttl=1h >/dev/null 2>&1 || true
+  kubectl -n openbao exec openbao-0 -- bao kv put apps/demo/app password=s3cr3t >/dev/null 2>&1 || true
+
+  ok "OpenBao initialized, unsealed and configured"
+}
+
+# Read a field from `bao status` (e.g. '^Initialized' or '^Sealed').
+# `bao status` exits non-zero (2) when the node is sealed/uninitialized, so the
+# pipeline is guarded with `|| true` to avoid tripping `set -e` + `pipefail`.
+openbao_field() {
+  local pod="$1" pattern="$2"
+  kubectl -n openbao exec "${pod}" -- bao status 2>/dev/null \
+    | grep -E "${pattern}" | awk '{print $2}' | head -1 || true
 }
 
 # ---------------------------------------------------------------------------
@@ -416,7 +536,15 @@ cmd_down() {
 }
 
 cmd_clean() {
-  rm -rf "${DEBOX_DIR}"
+  # zot writes its registry blobs as root inside the bind-mounted
+  # `.devbox/registry`, so the host user cannot `rm -rf` them. Remove the tree
+  # via a disposable container (which runs as root), then fall back to a plain
+  # `rm -rf` for anything left over.
+  if [ -d "${DEBOX_DIR}" ]; then
+    docker run --rm -v "${DEBOX_DIR}:/devbox" alpine:3.20 \
+      sh -c 'rm -rf /devbox/* /devbox/.[!.]*' >/dev/null 2>&1 || true
+    rm -rf "${DEBOX_DIR}"
+  fi
   ok "clean: removed ${DEBOX_DIR}"
 }
 
@@ -435,6 +563,7 @@ main() {
     build)    cmd_build ;;
     cluster)  cmd_cluster "$@" ;;
     bootstrap) cmd_bootstrap ;;
+    openbao)   cmd_openbao ;;
     test)     cmd_test ;;
     down)     cmd_down ;;
     clean)    cmd_clean ;;

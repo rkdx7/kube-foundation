@@ -39,13 +39,38 @@ spec:
         - kind: ServiceAccount
           name: flux
           namespace: << inputs.component >>
+    # The built-in `admin` ClusterRole does not cover the Gateway API group,
+    # so tenant apps that publish an HTTPRoute need an explicit grant.
+    - apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        name: gateway-api
+        namespace: << inputs.component >>
+      rules:
+        - apiGroups: ["gateway.networking.k8s.io"]
+          resources: ["httproutes", "grpcroutes", "tcproutes", "tlsroutes", "udproutes"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: flux-gateway-api
+        namespace: << inputs.component >>
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: Role
+        name: gateway-api
+      subjects:
+        - kind: ServiceAccount
+          name: flux
+          namespace: << inputs.component >>
     - apiVersion: v1
       kind: ConfigMap
       metadata:
-        name: << inputs.component >>-config
+        name: << inputs.component >>-flux-config
         namespace: << inputs.component >>
       data:
-        HOST: '<< inputs.host | default "" >>'
+        # `host` is only set for a subset of inputs; see the note in infra.yaml.
+        HOST: '<< get (inputs) "host" >>'
     - apiVersion: source.toolkit.fluxcd.io/v1
       kind: OCIRepository
       metadata:
@@ -85,4 +110,4 @@ spec:
         postBuild:
           substituteFrom:
             - kind: ConfigMap
-              name: << inputs.component >>-config
+              name: << inputs.component >>-flux-config
