@@ -9,6 +9,7 @@ débloquer, réparer, mettre à jour, sauvegarder/restaurer.
 
 ### Domaine « core » — réseau, ingress & TLS (`shard-core`)
 - [cilium](cilium.md) — CNI / eBPF / Hubble
+- [kube-vip](kube-vip.md) — LoadBalancer VIP (on-prem)
 - [kgateway](kgateway.md) — Gateway API / Envoy (entrée nord-sud)
 - [cert-manager](cert-manager.md) — certificats TLS (ACME)
 - [external-dns](external-dns.md) — synchronisation DNS

@@ -14,6 +14,7 @@ déployée par l'artefact. Les versions de composants sont pinnées dans le cham
 | Composant | Version OCI | Version composant (chart) |
 |---|---|---|
 | cilium | 1.0.0 | 1.20.2 |
+| kube-vip | 1.0.0 | 0.11.1 (kube-vip) / 0.2.10 (kube-vip-cloud-provider) |
 | kgateway | 1.0.0 | v2.4.3 (chart) / v1.6.1 (Gateway API CRDs) |
 | cert-manager | 1.0.0 | v1.21.2 |
 | external-dns | 1.0.0 | 1.23.0 |

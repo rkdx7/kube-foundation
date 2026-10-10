@@ -13,6 +13,8 @@ data:
   CLUSTER_NAME: staging
   CLUSTER_DOMAIN: staging.example.com
   PROVIDER: onprem
+  # On-prem LoadBalancer VIP pool for kube-vip (Services of type LoadBalancer).
+  LOADBALANCER_CIDR: 192.168.10.200/29
   # Local/offline environments cannot complete a Let's Encrypt ACME challenge
   # (no public DNS), so staging uses a self-signed issuer.
   ISSUER: self-signed

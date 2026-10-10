@@ -13,6 +13,9 @@ data:
   CLUSTER_NAME: prod
   CLUSTER_DOMAIN: prod.example.com
   PROVIDER: aws
+  # Not used on AWS (the cloud provides LoadBalancers); kube-vip is the on-prem
+  # provider. Kept empty so kube-vip-cloud-provider allocates nothing.
+  LOADBALANCER_CIDR: ""
   # Production uses a real Let's Encrypt issuer. Replace the ACME_EMAIL
   # placeholder with a real address (Let's Encrypt rejects example.com).
   ISSUER: letsencrypt-prod

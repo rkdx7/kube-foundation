@@ -13,7 +13,7 @@ behaviour is configured per environment. The `PROVIDER` value in
 | External Secrets | AWS Secrets Manager | GCP Secret Manager | Azure Key Vault | Vault / none |
 | Velero | S3 | GCS | Azure Blob | Ceph RGW (Rook) |
 | Loki / Tempo (object store) | S3 | GCS | Azure Blob | Ceph RGW (Rook) |
-| LoadBalancer | AWS LB | GCP LB | Azure LB | MetalLB |
+| LoadBalancer | AWS LB | GCP LB | Azure LB | kube-vip |
 
 ## Adding a cloud CSI driver
 

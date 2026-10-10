@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubevip
+  namespace: kube-system
+data:
+  # On-prem LoadBalancer VIP pool, resolved per environment from
+  # `${LOADBALANCER_CIDR}` (flux-runtime-info). kube-vip-cloud-provider allocates
+  # IPs from this pool to every Service of type LoadBalancer.
+  cidr-global: "${LOADBALANCER_CIDR}"

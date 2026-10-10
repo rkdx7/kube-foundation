@@ -1,0 +1,56 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: kube-vip
+  namespace: kube-vip
+spec:
+  interval: 24h
+  url: https://kube-vip.github.io/helm-charts/
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-vip
+  namespace: kube-vip
+spec:
+  interval: 30m
+  releaseName: kube-vip
+  targetNamespace: kube-system
+  chart:
+    spec:
+      chart: kube-vip
+      version: "0.11.1"
+      sourceRef:
+        kind: HelmRepository
+        name: kube-vip
+  values:
+    env:
+      # L2 (ARP) mode: the DaemonSet advertises Service LoadBalancer VIPs via
+      # gratuitous ARP on the node's interface. Control-plane VIP is disabled
+      # (the API server is reached through the regular cluster network).
+      vip_arp: "true"
+      svc_enable: "true"
+      lb_enable: "true"
+      cp_enable: "false"
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-vip-cloud-provider
+  namespace: kube-vip
+spec:
+  interval: 30m
+  releaseName: kube-vip-cloud-provider
+  targetNamespace: kube-system
+  chart:
+    spec:
+      chart: kube-vip-cloud-provider
+      version: "0.2.10"
+      sourceRef:
+        kind: HelmRepository
+        name: kube-vip
+  values:
+    # The IP pool (`cidr-global`) is supplied by the `kubevip` ConfigMap created
+    # in the configs overlay (`configs/base/kubevip-pool.yaml`), so the chart
+    # must not generate its own ConfigMap (`cm.data` stays empty).
+    configMapName: kubevip

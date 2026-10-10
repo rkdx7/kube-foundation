@@ -27,7 +27,7 @@ templated resource generation), matching the [Flux D2 reference architecture](ht
 | Layer | Role | Contents |
 |---|---|---|
 | `fleet/` | Platform team only | `FluxInstance`, self-managed operator, tenant `ResourceSet`s |
-| `infrastructure/` | Cluster add-ons | 18 components (controllers + per-env configs) |
+| `infrastructure/` | Cluster add-ons | 20 components (controllers + per-env configs) |
 | `apps/` | App delivery | Demo frontend (Go) + backend (redis/memcached) |
 
 ## Included components
@@ -35,7 +35,7 @@ templated resource generation), matching the [Flux D2 reference architecture](ht
 | Domain | Components |
 |---|---|
 | GitOps | Flux Operator (`FluxInstance`, `ResourceSet`) |
-| Networking | Cilium (CNI + Hubble) |
+| Networking | Cilium (CNI + Hubble), kube-vip (LoadBalancer VIP) |
 | Ingress & TLS | kgateway, cert-manager, ExternalDNS |
 | Service mesh | Istio (base, istiod, gateway) |
 | Observability | kube-prometheus-stack (Prometheus/Grafana/Alertmanager), Loki, Tempo, OpenTelemetry Collector, Vector (log agent), metrics-server |
