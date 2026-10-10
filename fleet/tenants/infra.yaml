@@ -56,8 +56,8 @@ spec:
       configs: "false"
       tag: "1.0.0"
       shard: "shard-platform"
-    - component: "longhorn"
-      configs: "false"
+    - component: "rook"
+      configs: "true"
       tag: "1.0.0"
       shard: "shard-platform"
     - component: "monitoring"
@@ -107,14 +107,24 @@ spec:
     - apiVersion: v1
       kind: ConfigMap
       metadata:
-        name: << inputs.component >>-config
+        # Named `-flux-config` (not `-config`) so it does not collide with
+        # ConfigMaps that a component's Helm chart creates under the same
+        # `<component>-config` name (e.g. OpenBao's `server.extraConfig`
+        # ConfigMap, whose `extraconfig-from-values.hcl` key is not a valid
+        # envsubst variable name and breaks postBuild substitution).
+        name: << inputs.component >>-flux-config
         namespace: << inputs.component >>
         annotations:
           fluxcd.controlplane.io/reconcile: << if eq inputs.configs "true" >>enabled<< else >>disabled<< end >>
       data:
-        HOST: '<< inputs.host | default "" >>'
+        # `host` is only set for a subset of inputs; use the Sprig `get`
+        # helper, which yields "" for absent keys, because the ResourceSet
+        # template engine runs with `missingkey=error` (so `inputs.host`
+        # would fail for every component that does not define it).
+        HOST: '<< get (inputs) "host" >>'
         CLUSTER_DOMAIN: "${CLUSTER_DOMAIN}"
-        ISSUER: "letsencrypt-${ENVIRONMENT}"
+        ISSUER: "${ISSUER}"
+        ACME_EMAIL: "${ACME_EMAIL}"
     - apiVersion: source.toolkit.fluxcd.io/v1
       kind: OCIRepository
       metadata:
@@ -199,4 +209,4 @@ spec:
         postBuild:
           substituteFrom:
             - kind: ConfigMap
-              name: << inputs.component >>-config
+              name: << inputs.component >>-flux-config

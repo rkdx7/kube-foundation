@@ -35,7 +35,7 @@ declaratively on the `FluxInstance` and applied to tenant workloads via the
 | `shard-core` | Networking, ingress & TLS | cilium, kgateway, cert-manager, external-dns |
 | `shard-security` | Secrets, policy & runtime security | external-secrets, openbao, kyverno, falco, trivy |
 | `shard-observability` | Monitoring, logs & traces | monitoring, loki, tempo, opentelemetry, vector |
-| `shard-platform` | Mesh, autoscaling, storage, backup & apps | istio, keda, velero, longhorn, frontend, backend |
+| `shard-platform` | Mesh, autoscaling, storage, backup & apps | istio, keda, velero, rook, frontend, backend |
 
 ## Staging
 
@@ -48,7 +48,7 @@ simple while exercising the exact same `ResourceSet` templates as prod.
 
 - **Add/remove a shard**: edit `spec.sharding.shards` in the prod `FluxInstance`.
 - **Reassign a component**: change its `shard` input in `fleet/tenants/*.yaml`
-  (e.g. move `longhorn` from `shard-platform` to `shard-core`). The next fleet
+  (e.g. move `rook` from `shard-platform` to `shard-core`). The next fleet
   reconciliation regenerates the sources/Kustomizations with the new label.
 
 ## Verification

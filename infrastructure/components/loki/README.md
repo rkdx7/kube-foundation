@@ -28,12 +28,15 @@ Dans ce dépôt, il reçoit les logs agrégés par **Vector** (l'agent de collec
 | `singleBinary.persistence` | `false` (pas de persistance) |
 | `backend` / `read` / `write` | `replicas: 0` (mode scalable désactivé) |
 | `loki.useTestSchema` | `true` |
-| Stockage | `filesystem` (`/tmp/loki/chunks`, `/tmp/loki/rules`) |
+| Stockage | **S3** (`type: s3`) → Ceph RGW `rook-ceph-rgw-rgw:80` (Rook), bucket `loki-data` |
 
 Fichier clé : `controllers/base/loki.yaml` — la `HelmRelease`.
 
-> ⚠️ Cette config est un **mode minimal/dev** : pas de persistance, pas d'object
-> storage. Pour la prod, voir « Configurations à considérer ».
+> Les chunks et l'index sont stockés dans **Ceph RGW** (object store S3 auto-hébergé
+> via Rook, bucket `loki-data`), tandis que le WAL/ruler/compactor restent sur `/tmp`
+> (emptyDir). Les credentials S3 sont injectés via `valuesFrom` (Secret
+> `loki-s3-creds`, voir le README de Rook). Pour la prod, voir
+> « Configurations à considérer ».
 
 ## Configurations à considérer
 

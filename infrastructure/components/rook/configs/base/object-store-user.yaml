@@ -1,0 +1,11 @@
+# S3 user shared by the in-cluster consumers (Loki, Tempo, Velero).
+# Rook auto-generates the AccessKey/SecretKey into the Secret:
+#   rook-ceph-object-user-rgw-platform  (keys: AccessKey, SecretKey)
+apiVersion: ceph.rook.io/v1
+kind: CephObjectStoreUser
+metadata:
+  name: platform
+  namespace: rook-ceph
+spec:
+  store: rgw
+  displayName: "Platform S3 user (Loki, Tempo, Velero)"

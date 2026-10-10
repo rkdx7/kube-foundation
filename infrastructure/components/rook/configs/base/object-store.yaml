@@ -1,0 +1,23 @@
+# Object storage (S3): the Ceph Object Gateway (RGW).
+# Exposed in-cluster as the Service `rook-ceph-rgw-rgw.rook-ceph.svc:80`.
+# This replaces SeaweedFS as the cluster's self-hosted S3 endpoint.
+apiVersion: ceph.rook.io/v1
+kind: CephObjectStore
+metadata:
+  name: rgw
+  namespace: rook-ceph
+spec:
+  metadataPool:
+    replicated:
+      size: 3
+  dataPool:
+    replicated:
+      size: 3
+  preservePoolsOnDelete: true
+  gateway:
+    port: 80
+    securePort: 443
+    instances: 1
+  healthCheck:
+    bucket:
+      enabled: true

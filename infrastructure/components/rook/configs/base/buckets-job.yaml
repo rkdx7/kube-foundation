@@ -1,0 +1,43 @@
+# One-shot Job that waits for the RGW endpoint and creates the buckets consumed
+# by Loki, Tempo and Velero. Idempotent: `s3 mb || true` on an existing bucket is
+# a no-op, so Flux re-runs are safe.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-buckets
+  namespace: rook-ceph
+spec:
+  # High backoff: Ceph (and thus the RGW + the `platform` user Secret this Job
+  # depends on) takes several minutes to come up on first install.
+  backoffLimit: 50
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: create-buckets
+          image: amazon/aws-cli:2.22.0
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              until curl -sf http://rook-ceph-rgw-rgw.rook-ceph.svc:80 >/dev/null 2>&1; do
+                echo "waiting for RGW..."; sleep 5
+              done
+              for b in loki-data tempo-data velero; do
+                aws s3 mb "s3://$b" --endpoint-url http://rook-ceph-rgw-rgw.rook-ceph.svc:80 || true
+              done
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: rook-ceph-object-user-rgw-platform
+                  key: AccessKey
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: rook-ceph-object-user-rgw-platform
+                  key: SecretKey
+            - name: AWS_DEFAULT_REGION
+              value: us-east-1
+            - name: AWS_EC2_METADATA_DISABLED
+              value: "true"

@@ -41,7 +41,7 @@ templated resource generation), matching the [Flux D2 reference architecture](ht
 | Observability | kube-prometheus-stack (Prometheus/Grafana/Alertmanager), Loki, Tempo, OpenTelemetry Collector, Vector (log agent), metrics-server |
 | Secrets | External Secrets Operator + SOPS (age), OpenBao (Vault fork, HA) |
 | Security & policy | Kyverno, Falco, Trivy |
-| Storage | Longhorn (on-prem) + cloud CSI (documented) |
+| Storage | Rook/Ceph (on-prem block + S3 object store via RGW) + cloud CSI (documented) |
 | Autoscaling | KEDA |
 | Backup/DR | Velero |
 

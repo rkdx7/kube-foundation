@@ -36,8 +36,35 @@ spec:
       replicas: 0
     loki:
       useTestSchema: true
+      commonConfig:
+        # The Loki containers run with readOnlyRootFilesystem=true, so the default
+        # path_prefix (/var/loki) is not writable and loki crashes with
+        # "mkdir /var/loki: read-only file system". Point the WAL/ruler/compactor
+        # at the writable /tmp emptyDir; chunks and index live in S3 (Ceph RGW).
+        path_prefix: /tmp/loki
+        # SingleBinary runs a single replica, so match the replication factor or
+        # ingest is rejected with "at least 2 live replicas required".
+        replication_factor: 1
       storage:
-        type: filesystem
-        filesystem:
-          chunks_directory: /tmp/loki/chunks
-          rules_directory: /tmp/loki/rules
+        type: s3
+        bucketNames:
+          chunks: loki-data
+          ruler: loki-data
+        s3:
+          # Self-hosted S3-compatible object store (Ceph RGW, via Rook).
+          endpoint: rook-ceph-rgw-rgw.rook-ceph.svc:80
+          region: us-east-1
+          insecure: true
+          s3ForcePathStyle: true
+  valuesFrom:
+    # Credentials come from a Secret in this namespace (`loki-s3-creds`) carrying
+    # `accessKeyId` and `secretAccessKey`. See the Rook README for the one-liner
+    # that copies them from the Rook-generated secret `rook-ceph-object-user-rgw-platform`.
+    - kind: Secret
+      name: loki-s3-creds
+      valuesKey: accessKeyId
+      targetPath: loki.storage.s3.accessKeyId
+    - kind: Secret
+      name: loki-s3-creds
+      valuesKey: secretAccessKey
+      targetPath: loki.storage.s3.secretAccessKey

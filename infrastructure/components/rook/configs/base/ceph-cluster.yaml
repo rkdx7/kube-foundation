@@ -1,0 +1,44 @@
+# The Ceph cluster itself. The operator (installed by `controllers/`) watches this
+# CR and brings up MONs, MGRs, OSDs, and the rest of the Ceph daemons.
+#
+# ⚠️ Ceph OSDs require raw block devices on the nodes (or an explicit `nodes` /
+#    `devices` list). `useAllNodes` + `useAllDevices` auto-discovers every unused
+#    disk. On kind/devbox there are no extra disks, so this CR stays NotReady
+#    locally — it targets real bare-metal / VM clusters (or cloud instances with
+#    attached NVMe disks). See docs for the `storage.nodes` override.
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  name: rook-ceph
+  namespace: rook-ceph
+spec:
+  cephVersion:
+    image: quay.io/ceph/ceph:v20.2.4
+    allowUnsupported: false
+  dataDirHostPath: /var/lib/rook
+  mon:
+    count: 3
+    allowMultiplePerNode: false
+  mgr:
+    count: 1
+    modules:
+      - name: rook
+        enabled: true
+  dashboard:
+    enabled: true
+  crashCollector:
+    disable: false
+  storage:
+    useAllNodes: true
+    useAllDevices: true
+    config:
+      osdsPerDevice: "1"
+  network:
+    connections:
+      encryption:
+        enabled: false
+  healthCheck:
+    daemonHealth:
+      mon:
+        interval: 45s
+        timeout: 600s

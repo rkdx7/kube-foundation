@@ -25,7 +25,7 @@ déployée par l'artefact. Les versions de composants sont pinnées dans le cham
 | istio | 1.0.0 | 1.30.5 |
 | keda | 1.0.0 | 2.21.0 |
 | velero | 1.0.0 | 12.2.1 |
-| longhorn | 1.0.0 | 1.9.1 |
+| rook | 1.0.0 | 1.21.0 (rook-ceph) / v20.2.4 (Ceph) |
 | monitoring | 1.0.0 | 92.2.0 (kube-prometheus-stack) / 3.14.0 (metrics-server) |
 | loki | 1.0.0 | 7.3.0 |
 | tempo | 1.0.0 | 1.24.4 |

@@ -8,15 +8,16 @@ behaviour is configured per environment. The `PROVIDER` value in
 
 | Concern | AWS | GCP | Azure | On-prem |
 |---|---|---|---|---|
-| Storage CSI | `aws-ebs-csi-driver` | `gcp-compute-persistent-disk-csi-driver` | `azuredisk-csi-driver` | Longhorn |
+| Storage CSI | `aws-ebs-csi-driver` | `gcp-compute-persistent-disk-csi-driver` | `azuredisk-csi-driver` | Rook (Ceph RBD) |
 | ExternalDNS | `provider: aws` | `provider: google` | `provider: azure` | `rfc2136` / none |
 | External Secrets | AWS Secrets Manager | GCP Secret Manager | Azure Key Vault | Vault / none |
-| Velero | S3 | GCS | Azure Blob | MinIO |
+| Velero | S3 | GCS | Azure Blob | Ceph RGW (Rook) |
+| Loki / Tempo (object store) | S3 | GCS | Azure Blob | Ceph RGW (Rook) |
 | LoadBalancer | AWS LB | GCP LB | Azure LB | MetalLB |
 
 ## Adding a cloud CSI driver
 
-Add it as a new infrastructure component following the same pattern as `longhorn`.
+Add it as a new infrastructure component following the same pattern as `rook`.
 For example, AWS EBS CSI:
 
 ```yaml
@@ -67,3 +68,21 @@ Prefer provider workload identity over static credentials:
 
 The Flux `FluxInstance.cluster.objectLevelWorkloadIdentity` flag enables object-level
 service-account selection for the Flux controllers in these environments.
+
+## Object storage (logs & traces)
+
+On-prem, the S3-compatible object store is **Ceph RGW** (deployed by **Rook**,
+`infrastructure/components/rook`). Loki, Tempo and Velero point at its S3 gateway
+(`rook-ceph-rgw-rgw.rook-ceph.svc:80`) instead of a cloud bucket:
+
+| Consumer | Bucket |
+|---|---|
+| Loki (logs) | `loki-data` |
+| Tempo (traces) | `tempo-data` |
+| Velero (backups) | `velero` |
+
+On cloud providers you can instead point each consumer at the native object store
+(S3 / GCS / Azure Blob) by overriding its Helm `values` per environment — e.g. Loki
+`loki.storage.type: s3|gcs|azure` and the corresponding endpoint/bucket. Credentials
+come from workload identity where available, or SOPS/External Secrets.
+

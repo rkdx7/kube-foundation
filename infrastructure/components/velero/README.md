@@ -36,15 +36,15 @@ Fichier clé : `controllers/base/velero.yaml` — la `HelmRelease`.
 
 ## Configurations à considérer
 
-- **Backend de stockage** : adapter à S3, GCS, Azure Blob, ou **MinIO** (on-prem).
-  Utiliser **IRSA / Workload Identity** pour les credentials.
-- **Snapshot des volumes** : utiliser le CSI de votre provider ou Longhorn ; sinon
-  activer **Kopia/Restic** pour la copie fichier (`use-node-agent`).
+- **Backend de stockage** : adapter à S3, GCS, Azure Blob, ou **Ceph RGW** (on-prem,
+  via Rook). Utiliser **IRSA / Workload Identity** pour les credentials.
+- **Snapshot des volumes** : utiliser le CSI de votre provider ou Rook (Ceph RBD) ;
+  sinon activer **Kopia/Restic** pour la copie fichier (`use-node-agent`).
 - **Schedules** : plusieurs planifications (quotidien + hebdo + mensuel) et rétention.
 - **Filtres** : `includedNamespaces`, `excludedResources`, labels pour cibler les backups.
 - **Hooks** : `pre/post` (ex. flusher une base avant snapshot).
 - **Restore** : tester régulièrement les restaurations (un backup non testé n'est pas fiable).
-- **Velero + Longhorn** : Velero gère les objets, Longhorn les backups de volumes.
+- **Velero + Rook** : Velero gère les objets, le CSI Ceph (RBD) les snapshots de volumes.
 
 ## Mini-formation
 
