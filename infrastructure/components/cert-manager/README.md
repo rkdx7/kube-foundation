@@ -4,6 +4,8 @@
 
 # cert-manager
 
+> **Runbook** : [docs/runbooks/cert-manager.md](../../../docs/runbooks/cert-manager.md)
+
 > **Site officiel** : https://cert-manager.io/
 > **Documentation** : https://cert-manager.io/docs/
 > **Chart Helm** : https://artifacthub.io/packages/helm/cert-manager/cert-manager

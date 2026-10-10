@@ -4,6 +4,8 @@
 
 # Velero
 
+> **Runbook** : [docs/runbooks/velero.md](../../../docs/runbooks/velero.md)
+
 > **Site officiel** : https://velero.io/
 > **Documentation** : https://velero.io/docs/
 > **Chart Helm** : https://artifacthub.io/packages/helm/vmware-tanzu/velero

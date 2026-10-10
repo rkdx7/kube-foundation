@@ -4,6 +4,8 @@
 
 # Cilium
 
+> **Runbook** : [docs/runbooks/cilium.md](../../../docs/runbooks/cilium.md)
+
 > **Site officiel** : https://cilium.io/
 > **Documentation** : https://docs.cilium.io/
 > **Chart Helm** : https://artifacthub.io/packages/helm/cilium/cilium

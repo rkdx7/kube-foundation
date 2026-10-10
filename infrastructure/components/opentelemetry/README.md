@@ -4,6 +4,8 @@
 
 # OpenTelemetry Collector
 
+> **Runbook** : [docs/runbooks/opentelemetry.md](../../../docs/runbooks/opentelemetry.md)
+
 > **Site officiel** : https://opentelemetry.io/
 > **Documentation** : https://opentelemetry.io/docs/collector/
 > **Chart Helm** : https://artifacthub.io/packages/helm/opentelemetry-helm-charts/opentelemetry-collector

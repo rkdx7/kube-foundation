@@ -4,6 +4,8 @@
 
 # OpenBao
 
+> **Runbook** : [docs/runbooks/openbao.md](../../../docs/runbooks/openbao.md)
+
 > **Site officiel** : https://openbao.org/
 > **Documentation** : https://openbao.org/docs/
 > **Chart Helm** : https://artifacthub.io/packages/helm/openbao/openbao

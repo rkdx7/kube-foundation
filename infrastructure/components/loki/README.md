@@ -4,6 +4,8 @@
 
 # Loki
 
+> **Runbook** : [docs/runbooks/loki.md](../../../docs/runbooks/loki.md)
+
 > **Site officiel** : https://grafana.com/oss/loki/
 > **Documentation** : https://grafana.com/docs/loki/latest/
 > **Chart Helm** : https://artifacthub.io/packages/helm/grafana/loki

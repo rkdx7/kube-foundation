@@ -4,6 +4,8 @@
 
 # External Secrets Operator (ESO)
 
+> **Runbook** : [docs/runbooks/external-secrets.md](../../../docs/runbooks/external-secrets.md)
+
 > **Site officiel** : https://external-secrets.io/
 > **Documentation** : https://external-secrets.io/latest/
 > **Chart Helm** : https://artifacthub.io/packages/helm/external-secrets/external-secrets

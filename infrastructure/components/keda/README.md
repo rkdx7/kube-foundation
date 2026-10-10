@@ -4,6 +4,8 @@
 
 # KEDA
 
+> **Runbook** : [docs/runbooks/keda.md](../../../docs/runbooks/keda.md)
+
 > **Site officiel** : https://keda.sh/
 > **Documentation** : https://keda.sh/docs/
 > **Chart Helm** : https://artifacthub.io/packages/helm/kedacore/keda

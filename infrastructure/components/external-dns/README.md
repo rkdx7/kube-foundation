@@ -4,6 +4,8 @@
 
 # ExternalDNS
 
+> **Runbook** : [docs/runbooks/external-dns.md](../../../docs/runbooks/external-dns.md)
+
 > **Site / projet** : https://kubernetes-sigs.github.io/external-dns/
 > **Documentation** : https://kubernetes-sigs.github.io/external-dns/latest/
 > **Chart Helm** : https://artifacthub.io/packages/helm/external-dns/external-dns

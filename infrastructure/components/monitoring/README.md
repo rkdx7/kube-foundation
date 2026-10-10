@@ -4,6 +4,8 @@
 
 # Monitoring (kube-prometheus-stack + metrics-server)
 
+> **Runbook** : [docs/runbooks/monitoring.md](../../../docs/runbooks/monitoring.md)
+
 > **Site officiel** :
 > - Prometheus Operator : https://prometheus-operator.dev/
 > - Prometheus : https://prometheus.io/ · Grafana : https://grafana.com/

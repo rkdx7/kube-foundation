@@ -4,6 +4,8 @@
 
 # Trivy (Trivy Operator)
 
+> **Runbook** : [docs/runbooks/trivy.md](../../../docs/runbooks/trivy.md)
+
 > **Site officiel** : https://trivy.dev/
 > **Documentation** : https://aquasecurity.github.io/trivy/
 > **Chart Helm** : https://artifacthub.io/packages/helm/aquasecurity/trivy-operator

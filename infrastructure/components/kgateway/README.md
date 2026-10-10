@@ -4,6 +4,8 @@
 
 # kgateway
 
+> **Runbook** : [docs/runbooks/kgateway.md](../../../docs/runbooks/kgateway.md)
+
 > **Site officiel** : https://kgateway.dev/
 > **Documentation** : https://kgateway.dev/docs/
 > **Chart Helm** : https://artifacthub.io/packages/helm/kgateway/kgateway

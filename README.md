@@ -155,6 +155,7 @@ scales out and stays isolated per domain. `staging` stays unsharded. See
 - [docs/secrets.md](docs/secrets.md) — SOPS + ESO
 - [docs/multi-cloud.md](docs/multi-cloud.md) — AWS / GCP / Azure / on-prem
 - [docs/sharding.md](docs/sharding.md) — horizontal sharding of the prod cluster
+- [docs/runbooks/](docs/runbooks/) — operational runbooks, one per component
 
 ## License & attribution
 

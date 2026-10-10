@@ -4,6 +4,8 @@
 
 # Rook (Ceph)
 
+> **Runbook** : [docs/runbooks/rook.md](../../../docs/runbooks/rook.md)
+
 > **Site officiel** : https://rook.io/
 > **Documentation** : https://rook.io/docs/rook/latest-release/
 > **Chart Helm** : https://artifacthub.io/packages/helm/rook-release/rook-ceph

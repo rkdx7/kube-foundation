@@ -4,6 +4,8 @@
 
 # Vector
 
+> **Runbook** : [docs/runbooks/vector.md](../../../docs/runbooks/vector.md)
+
 > **Site officiel** : https://vector.dev/
 > **Documentation** : https://vector.dev/docs/
 > **Chart Helm** : https://artifacthub.io/packages/helm/vector/vector

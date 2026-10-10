@@ -4,6 +4,8 @@
 
 # Tempo
 
+> **Runbook** : [docs/runbooks/tempo.md](../../../docs/runbooks/tempo.md)
+
 > **Site officiel** : https://grafana.com/oss/tempo/
 > **Documentation** : https://grafana.com/docs/tempo/latest/
 > **Chart Helm** : https://artifacthub.io/packages/helm/grafana/tempo
