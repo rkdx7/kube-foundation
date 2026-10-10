@@ -75,7 +75,7 @@ steady state:
      ├─ ResourceSet flux-operator (self-managed operator upgrade)
      ├─ flux-runtime-info ConfigMap
      └─ Kustomization tenants ──▶ fleet/tenants
-          ├─ ResourceSet infra ──▶ 17 component namespaces + OCIRepository + Kustomization
+          ├─ ResourceSet infra ──▶ 18 component namespaces + OCIRepository + Kustomization
           └─ ResourceSet apps  ──▶ frontend/backend namespaces + sources
 ```
 

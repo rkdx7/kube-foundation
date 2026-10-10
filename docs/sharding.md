@@ -35,7 +35,7 @@ declaratively on the `FluxInstance` and applied to tenant workloads via the
 | `shard-core` | Networking, ingress & TLS | cilium, kgateway, cert-manager, external-dns |
 | `shard-security` | Secrets, policy & runtime security | external-secrets, openbao, kyverno, falco, trivy |
 | `shard-observability` | Monitoring, logs & traces | monitoring, loki, tempo, opentelemetry, vector |
-| `shard-platform` | Mesh, autoscaling, storage, backup & apps | istio, keda, velero, rook, frontend, backend |
+| `shard-platform` | Mesh, autoscaling, storage, backup & apps | istio, keda, stakater, velero, rook, frontend, backend |
 
 ## Staging
 

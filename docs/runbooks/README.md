@@ -30,6 +30,7 @@ débloquer, réparer, mettre à jour, sauvegarder/restaurer.
 ### Domaine « platform » — mesh, autoscaling, stockage, backup & apps (`shard-platform`)
 - [istio](istio.md) — service mesh
 - [keda](keda.md) — autoscaling piloté par événements
+- [stakater](stakater.md) — Reloader (rechargement ConfigMap/Secret)
 - [rook](rook.md) — stockage Ceph (block + S3)
 - [velero](velero.md) — sauvegarde / restauration
 - [frontend](frontend.md) — application de démonstration (Go)

@@ -24,6 +24,7 @@ déployée par l'artefact. Les versions de composants sont pinnées dans le cham
 | trivy | 1.0.0 | 0.37.0 |
 | istio | 1.0.0 | 1.30.5 |
 | keda | 1.0.0 | 2.21.0 |
+| stakater | 1.0.0 | 2.2.18 (reloader) |
 | velero | 1.0.0 | 12.2.1 |
 | rook | 1.0.0 | 1.21.0 (rook-ceph) / v20.2.4 (Ceph) |
 | monitoring | 1.0.0 | 92.2.0 (kube-prometheus-stack) / 3.14.0 (metrics-server) |

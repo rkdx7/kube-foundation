@@ -27,7 +27,7 @@ templated resource generation), matching the [Flux D2 reference architecture](ht
 | Layer | Role | Contents |
 |---|---|---|
 | `fleet/` | Platform team only | `FluxInstance`, self-managed operator, tenant `ResourceSet`s |
-| `infrastructure/` | Cluster add-ons | 17 CNCF components (controllers + per-env configs) |
+| `infrastructure/` | Cluster add-ons | 18 components (controllers + per-env configs) |
 | `apps/` | App delivery | Demo frontend (Go) + backend (redis/memcached) |
 
 ## Included components
@@ -44,6 +44,7 @@ templated resource generation), matching the [Flux D2 reference architecture](ht
 | Storage | Rook/Ceph (on-prem block + S3 object store via RGW) + cloud CSI (documented) |
 | Autoscaling | KEDA |
 | Backup/DR | Velero |
+| Developer experience | Reloader (Stakater) — reload on ConfigMap/Secret changes |
 
 ## Repository layout
 
