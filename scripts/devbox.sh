@@ -436,38 +436,60 @@ cmd_openbao() {
   root_token="$(kubectl -n openbao get secret openbao-bootstrap -o jsonpath='{.data.root-token}' 2>/dev/null | base64 -d)"
   [ -z "${unseal_key}" ] && die "openbao-bootstrap secret missing"
 
-  # Unseal each replica as the ordered StatefulSet creates it (openbao-1 and
-  # openbao-2 are only scheduled once openbao-0 becomes Ready).
-  for pod in openbao-0 openbao-1 openbao-2; do
-    log "waiting for ${pod} to be running..."
-    for _ in $(seq 1 120); do
-      kubectl -n openbao get pod "${pod}" >/dev/null 2>&1 && break
-      sleep 5
-    done
-    kubectl -n openbao get pod "${pod}" >/dev/null 2>&1 || { warn "${pod} not created yet"; continue; }
-
-    sealed="$(openbao_field "${pod}" '^Sealed')"
-    if [ "${sealed}" = "true" ]; then
-      log "unsealing ${pod}..."
-      kubectl -n openbao exec "${pod}" -- bao operator unseal "${unseal_key}" >/dev/null 2>&1 || true
-      kubectl -n openbao wait --for=condition=Ready pod "${pod}" --timeout=120s >/dev/null 2>&1 || true
-    else
-      log "${pod} already unsealed"
-    fi
-  done
+  # Unseal openbao-0 (the primary replica). This is required for the External
+  # Secrets Operator, which talks to the active node via openbao-active.
+  log "unsealing openbao-0..."
+  local sealed
+  sealed="$(openbao_field openbao-0 '^Sealed')"
+  if [ "${sealed}" = "true" ]; then
+    kubectl -n openbao exec openbao-0 -- bao operator unseal "${unseal_key}" >/dev/null 2>&1 || true
+  fi
+  kubectl -n openbao wait --for=condition=Ready pod openbao-0 --timeout=120s >/dev/null 2>&1 || true
 
   # Configure (idempotent): login + KV v2 + kubernetes auth + eso role + demo secret.
   log "configuring OpenBao (KV v2 'apps', kubernetes auth, 'eso' role, demo secret)..."
   kubectl -n openbao exec openbao-0 -- bao login "${root_token}" >/dev/null 2>&1 || true
   kubectl -n openbao exec openbao-0 -- bao secrets enable -path=apps kv-v2 2>/dev/null || true
   kubectl -n openbao exec openbao-0 -- bao auth enable kubernetes 2>/dev/null || true
-  printf 'path "apps/data/*" { capabilities = ["read"] }\n' \
-    | kubectl -n openbao exec -i openbao-0 -- bao policy write eso - >/dev/null 2>&1 || true
+  # Point the kubernetes auth method at the cluster API server so it can
+  # validate the external-secrets ServiceAccount token via TokenReview.
+  kubectl -n openbao exec openbao-0 -- sh -c \
+    'bao write auth/kubernetes/config \
+       token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
+       kubernetes_host="https://kubernetes.default.svc" \
+       kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt' \
+    >/dev/null 2>&1 || true
+  # ESO reads sys/mounts/apps (to detect KV v2), lists apps/metadata/* and
+  # reads apps/data/*. Write a least-privilege policy covering those paths.
+  cat <<'EOF' | kubectl -n openbao exec -i openbao-0 -- bao policy write eso - >/dev/null 2>&1 || true
+path "sys/mounts/apps" {
+  capabilities = ["read"]
+}
+path "apps/data/*" {
+  capabilities = ["read"]
+}
+path "apps/metadata/*" {
+  capabilities = ["read", "list"]
+}
+EOF
   kubectl -n openbao exec openbao-0 -- bao write auth/kubernetes/role/eso \
     bound_service_account_names=external-secrets \
     bound_service_account_namespaces=external-secrets \
     policies=eso ttl=1h >/dev/null 2>&1 || true
   kubectl -n openbao exec openbao-0 -- bao kv put apps/demo/app password=s3cr3t >/dev/null 2>&1 || true
+
+  # Best-effort: unseal the HA followers once the ordered StatefulSet creates
+  # them. They are not required for ESO, so a failure here is non-fatal.
+  local pod phase
+  for pod in openbao-1 openbao-2; do
+    phase="$(kubectl -n openbao get pod "${pod}" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
+    [ "${phase}" = "Running" ] || { warn "${pod} not running — skipping HA follower"; continue; }
+    sealed="$(openbao_field "${pod}" '^Sealed')"
+    if [ "${sealed}" = "true" ]; then
+      log "unsealing ${pod}..."
+      kubectl -n openbao exec "${pod}" -- bao operator unseal "${unseal_key}" >/dev/null 2>&1 || true
+    fi
+  done
 
   ok "OpenBao initialized, unsealed and configured"
 }

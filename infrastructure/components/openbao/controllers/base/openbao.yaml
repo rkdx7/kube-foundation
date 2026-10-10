@@ -35,6 +35,12 @@ spec:
       dataStorage:
         enabled: true
         size: 10Gi
+        # Pin a storage class so all three HA replicas use the same backend.
+        # Without this, the PVCs pick whatever the cluster default is at the
+        # time each replica is created (e.g. `standard` then `longhorn` once
+        # Longhorn becomes default), which leaves the cluster split across two
+        # storage backends and can fault follower volumes.
+        storageClass: standard
     ui:
       enabled: true
     injector:
